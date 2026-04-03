@@ -3,6 +3,10 @@ from copy import copy
 
 import numpy as np
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from process.models.stellarator.stellarator import Stellarator
+
 from process.core import process_output as po
 from process.core.exceptions import ProcessValueError
 from process.data_structure import (
@@ -13,7 +17,7 @@ from process.data_structure import (
 logger = logging.getLogger(__name__)
 
 
-def st_denisty_limits(stellarator, f_output):
+def st_denisty_limits(stellarator: Stellarator, f_output):
     """Routine to reiterate the physics loop
 
     This routine reiterates some physics modules.
@@ -149,7 +153,7 @@ def st_d_limit_ecrh(gyro_frequency_max, bt_input):
     return dlimit_ecrh, bt_max
 
 
-def power_at_ignition_point(stellarator, gyro_frequency_max, te0_available):
+def power_at_ignition_point(stellarator: Stellarator, gyro_frequency_max, te0_available):
     """Routine to calculate if the plasma is ignitable with the current values for the B field. Assumes
     current ECRH achievable peak temperature (which is inaccurate as the cordey pass should be calculated)
 
@@ -219,7 +223,7 @@ def power_at_ignition_point(stellarator, gyro_frequency_max, te0_available):
     return powerht_out, pscalingmw_out
 
 
-def output(stellarator, bt_ecrh, ne0_max_ECRH):
+def output(stellarator: Stellarator, bt_ecrh, ne0_max_ECRH):
     po.oheadr(stellarator.outfile, "ECRH Ignition at lower values. Information:")
 
     po.ovarre(
