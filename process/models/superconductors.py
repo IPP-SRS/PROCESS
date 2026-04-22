@@ -1227,6 +1227,9 @@ def superconductor_current_density_margin(
         Current density margin (A/m²)
 
     """
+    dr_hts_tape=rebco_variables.dr_hts_tape
+    dx_hts_tape_rebco=rebco_variables.dx_hts_tape_rebco
+    dx_hts_tape_total=rebco_variables.dx_hts_tape_total
     material_functions = {
         1: lambda: itersc(temp_superconductor, b_superconductor, strain, bc20m, tc0m)[0],
         3: lambda: jcrit_nbti(temp_superconductor, b_superconductor, c0, bc20m, tc0m)[0],
@@ -1245,9 +1248,9 @@ def superconductor_current_density_margin(
             b_superconductor,
             bc20m,
             tc0m,
-            rebco_variables.dr_hts_tape,
-            rebco_variables.dx_hts_tape_rebco,
-            rebco_variables.dx_hts_tape_total,
+            dr_hts_tape,
+            dx_hts_tape_rebco,
+            dx_hts_tape_total,
         )[0],
     }
 
