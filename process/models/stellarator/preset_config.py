@@ -245,9 +245,38 @@ def load_stellarator_config(istell: int, config_file: Path | None):
         case _:
             raise ProcessValueError(f"{istell=} is not an integer in the range [1, 6]")
 
-    for variable_name, variable_value in machine_config.items():
-        setattr(
-            stellarator_configuration,
-            f"stella_config_{variable_name.lower()}",
-            variable_value,
-        )
+    stellarator_configuration.stella_config_name = machine_config["name"]
+    stellarator_configuration.stella_config_rmajor_ref = machine_config["rmajor_ref"]
+    stellarator_configuration.stella_config_rminor_ref = machine_config["rminor_ref"]
+    stellarator_configuration.stella_config_aspect_ref = machine_config["aspect_ref"]
+    stellarator_configuration.stella_config_coil_rmajor = machine_config["coil_rmajor"]
+    stellarator_configuration.stella_config_coil_rminor = machine_config["coil_rminor"]
+    stellarator_configuration.stella_config_bt_ref = machine_config["bt_ref"]
+    stellarator_configuration.stella_config_wp_area = machine_config["wp_area"]
+    stellarator_configuration.stella_config_wp_bmax = machine_config["wp_bmax"]
+    stellarator_configuration.stella_config_symmetry = machine_config["symmetry"]
+    stellarator_configuration.stella_config_coilspermodule = machine_config["coilspermodule"]
+    stellarator_configuration.stella_config_a1 = machine_config["a1"]
+    stellarator_configuration.stella_config_a2 = machine_config["a2"]
+    stellarator_configuration.stella_config_vol_plasma = machine_config["vol_plasma"]
+    stellarator_configuration.stella_config_dmin = machine_config["dmin"]
+    stellarator_configuration.stella_config_max_portsize_width = machine_config["max_portsize_width"]
+    stellarator_configuration.stella_config_plasma_surface = machine_config["plasma_surface"]
+    stellarator_configuration.stella_config_maximal_coil_height = machine_config["maximal_coil_height"]
+    stellarator_configuration.stella_config_coilsurface = machine_config["coilsurface"]
+    stellarator_configuration.stella_config_coillength = machine_config["coillength"]
+    stellarator_configuration.stella_config_i0 = machine_config["I0"]
+    stellarator_configuration.stella_config_inductance = machine_config["inductance"]
+    stellarator_configuration.stella_config_wp_ratio = machine_config["WP_ratio"]
+    stellarator_configuration.stella_config_max_force_density = machine_config["max_force_density"]
+    stellarator_configuration.stella_config_max_force_density_mnm = machine_config["max_force_density_mnm"]
+    stellarator_configuration.stella_config_max_lateral_force_density = machine_config["max_lateral_force_density"]
+    stellarator_configuration.stella_config_max_radial_force_density = machine_config["max_radial_force_density"]
+    stellarator_configuration.stella_config_centering_force_max_mn = machine_config["centering_force_max_mn"]
+    stellarator_configuration.stella_config_centering_force_min_mn = machine_config["centering_force_min_mn"]
+    stellarator_configuration.stella_config_centering_force_avg_mn = machine_config["centering_force_avg_mn"]
+    stellarator_configuration.stella_config_min_plasma_coil_distance = machine_config["min_plasma_coil_distance"]
+    stellarator_configuration.stella_config_derivative_min_lcfs_coils_dist = machine_config["derivative_min_lcfs_coils_dist"]
+    stellarator_configuration.stella_config_min_bend_radius = machine_config["min_bend_radius"]
+    stellarator_configuration.stella_config_neutron_peakfactor = machine_config["neutron_peakfactor"]
+    stellarator_configuration.stella_config_epseff = machine_config["epseff"]
