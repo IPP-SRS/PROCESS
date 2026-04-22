@@ -25,9 +25,9 @@ HELIAS5B = {
     "maximal_coil_height": 12.7,  # [m] Full height max point to min point
     "coilsurface": 4817.7,  # Coil surface, dimensionfull. At reference point
     "coillength": 1680.0,  # Central filament length of machine with outer radius 1m.
-    "I0": 13.06,  # Coil Current needed to produce 1T on axis in [MA] at outer radius 1m
+    "i0": 13.06,  # Coil Current needed to produce 1T on axis in [MA] at outer radius 1m
     "inductance": 1655.76e-6,  # inductance in muH
-    "WP_ratio": 1.2,  # The fit values in stellarator config class should be calculated using this value.
+    "wp_ratio": 1.2,  # The fit values in stellarator config class should be calculated using this value.
     "max_force_density": 120.0,  # [MN/m^3]
     "max_force_density_mnm": 98.0,  # [MN/m]
     "max_lateral_force_density": 92.4,  # [MN/m^3]
@@ -67,9 +67,9 @@ HELIAS4 = {
     "maximal_coil_height": 13.34,  # [m] Full height max point to min point
     "coilsurface": 4100.0,  # Coil surface, dimensionfull. At reference point
     "coillength": 1435.07,  # Central filament length of machine with outer radius 1m.
-    "I0": 13.146,  # Coil Current needed to produce b0 on axis in [MA] at reference point
+    "i0": 13.146,  # Coil Current needed to produce b0 on axis in [MA] at reference point
     "inductance": 1290.4e-6,  # inductance/R*A^2 in muH
-    "WP_ratio": 1.3,
+    "wp_ratio": 1.3,
     "max_force_density": 120.0,  # [MN/m^3]
     "max_force_density_mnm": 98.0,  # [MN/m]
     "max_lateral_force_density": 87.9,  # [MN/m^3]
@@ -109,9 +109,9 @@ HELIAS3 = {
     "maximal_coil_height": 17.74,  # [m] Full height max point to min point
     "coilsurface": 4240.0,  # Coil surface, dimensionfull. At reference point
     "coillength": 1287.3,  # Central filament length of machine with outer radius 1m.
-    "I0": 14.23,  # Coil Current needed to produce 1T on axis in [MA] at outer radius 1m
+    "i0": 14.23,  # Coil Current needed to produce 1T on axis in [MA] at outer radius 1m
     "inductance": 1250.7e-6,  # inductance in muH
-    "WP_ratio": 1.3,
+    "wp_ratio": 1.3,
     "max_force_density": 120.0,  # [MN/m]
     "max_force_density_mnm": 98.0,
     "max_lateral_force_density": 96.6,  # [MN/m^3]
@@ -150,9 +150,9 @@ W7X30 = {
     "maximal_coil_height": 3.6,  # [m] Full height max point to min point
     "coilsurface": 370.0,  # Coil surface, dimensionfull. At reference point
     "coillength": 303.4,  # Central filament length of machine with outer radius 1m.
-    "I0": 2.9,  # Coil Current needed to produce b0 on axis in [MA] at reference point
+    "i0": 2.9,  # Coil Current needed to produce b0 on axis in [MA] at reference point
     "inductance": 252.7e-6,  # inductance/R*A^2 in muH
-    "WP_ratio": 1.2,
+    "wp_ratio": 1.2,
     "max_force_density": 350.0,  # [MN/m^3]
     "max_force_density_mnm": 98.0,  # [MN/m]
     "max_lateral_force_density": 271.1,  # [MN/m^3]
@@ -191,9 +191,9 @@ W7X50 = {
     "maximal_coil_height": 3.1,  # [m] Full height max point to min point
     "coilsurface": 299.85,  # Coil surface, dimensionfull. At reference point
     "coillength": 420.67,  # Central filament length of machine with outer radius 1m.
-    "I0": 1.745,  # Coil Current needed to produce b0 on axis in [MA] at reference point
+    "i0": 1.745,  # Coil Current needed to produce b0 on axis in [MA] at reference point
     "inductance": 412.4e-6,  # inductance/R*A^2 in muH
-    "WP_ratio": 1.2,
+    "wp_ratio": 1.2,
     "max_force_density": 250.0,  # [MN/m^3]
     "max_force_density_mnm": 98.0,  # [MN/m]
     "max_lateral_force_density": 116.4,  # [MN/m^3]
@@ -241,7 +241,7 @@ def load_stellarator_config(istell: int, config_file: Path | None):
                 raise ProcessValueError("Stellarator config file is None but istell=6")
 
             with open(config_file) as f:
-                machine_config = json.load(f)
+                machine_config = {k.lower(): v for k, v in json.load(f).items()}
         case _:
             raise ProcessValueError(f"{istell=} is not an integer in the range [1, 6]")
 
@@ -265,9 +265,9 @@ def load_stellarator_config(istell: int, config_file: Path | None):
     stellarator_configuration.stella_config_maximal_coil_height = machine_config["maximal_coil_height"]
     stellarator_configuration.stella_config_coilsurface = machine_config["coilsurface"]
     stellarator_configuration.stella_config_coillength = machine_config["coillength"]
-    stellarator_configuration.stella_config_i0 = machine_config["I0"]
+    stellarator_configuration.stella_config_i0 = machine_config["i0"]
     stellarator_configuration.stella_config_inductance = machine_config["inductance"]
-    stellarator_configuration.stella_config_wp_ratio = machine_config["WP_ratio"]
+    stellarator_configuration.stella_config_wp_ratio = machine_config["wp_ratio"]
     stellarator_configuration.stella_config_max_force_density = machine_config["max_force_density"]
     stellarator_configuration.stella_config_max_force_density_mnm = machine_config["max_force_density_mnm"]
     stellarator_configuration.stella_config_max_lateral_force_density = machine_config["max_lateral_force_density"]
