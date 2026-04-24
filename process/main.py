@@ -744,7 +744,6 @@ class Models:
                 physics=self.physics,
                 neoclassics=self.neoclassics,
                 plasma_beta=self.plasma_beta,
-                plasma_bootstrap=self.plasma_bootstrap_current,
             )
 
         self.dcll = DCLL(fw=self.fw)

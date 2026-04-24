@@ -102,7 +102,6 @@ class Stellarator(Model):
         physics: Physics,
         neoclassics: Neoclassics,
         plasma_beta,
-        plasma_bootstrap,
     ) -> None:
         self.outfile: int = constants.NOUT
         self.first_call_stfwbs = True
@@ -118,7 +117,6 @@ class Stellarator(Model):
         self.physics = physics
         self.neoclassics = neoclassics
         self.beta = plasma_beta
-        self.bootstrap = plasma_bootstrap
 
     def output(self):
         self.run(output=True)
