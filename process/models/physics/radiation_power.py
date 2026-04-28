@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 
 import process.models.physics.impurity_radiation as impurity
-from process.models.physics.plasma_profiles import PlasmaProfile
+from process.data_structure import impurity_radiation_module
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,6 @@ class RadpwrData:
 
 
 def calculate_radiation_powers(
-    plasma_profile: PlasmaProfile,
     nd_plasma_electron_on_axis: float,
     rminor: float,
     b_plasma_toroidal_on_axis: float,
@@ -42,8 +41,6 @@ def calculate_radiation_powers(
 
     Parameters
     ----------
-    plasma_profile : PlasmaProfile
-        The parameterized temperature and density profiles of the plasma.
     nd_plasma_electron_on_axis : float
         Central electron density (m^-3).
     rminor : float
@@ -85,11 +82,11 @@ def calculate_radiation_powers(
         - I. Fidone, G Giruzzi, and G. Granata, “Synchrotron radiation loss in tokamaks of arbitrary geometry,”
           Nuclear Fusion, vol. 41, no. 12, pp. 1755-1758, Dec. 2001, doi: https://doi.org/10.1088/0029-5515/41/12/102.
     """
-    imp_rad = impurity.ImpurityRadiation(plasma_profile)
+    imp_rad = impurity.ImpurityRadiation()
     imp_rad.calculate_imprad()
 
     pden_plasma_outer_rad_mw = (
-        imp_rad.pden_impurity_rad_total_mw - imp_rad.pden_impurity_core_rad_total_mw
+        impurity_radiation_module.pden_impurity_rad_total_mw - impurity_radiation_module.pden_impurity_core_rad_total_mw
     )
 
     # Synchrotron radiation power/volume; assumed to be from core only.
@@ -110,11 +107,11 @@ def calculate_radiation_powers(
 
     # Total core radiation power/volume.
     pden_plasma_core_rad_mw = (
-        imp_rad.pden_impurity_core_rad_total_mw + pden_plasma_sync_mw
+        impurity_radiation_module.pden_impurity_core_rad_total_mw + pden_plasma_sync_mw
     )
 
     # Total radiation power/volume.
-    pden_plasma_rad_mw = imp_rad.pden_impurity_rad_total_mw + pden_plasma_sync_mw
+    pden_plasma_rad_mw = impurity_radiation_module.pden_impurity_rad_total_mw + pden_plasma_sync_mw
 
     return RadpwrData(
         pden_plasma_sync_mw,

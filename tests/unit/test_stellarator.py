@@ -94,7 +94,7 @@ def stellarator():
             PlasmaInductance(),
             PlasmaDensityLimit(),
             PlasmaExhaust(),
-            PlasmaBootstrapCurrent(plasma_profile=PlasmaProfile()),
+            PlasmaBootstrapCurrent(),
             PlasmaConfinementTime(),
             PlasmaConfinementTransition(),
             PlasmaCurrent(),

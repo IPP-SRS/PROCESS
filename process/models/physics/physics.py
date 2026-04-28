@@ -589,7 +589,7 @@ class Physics(Model):
 
         # Calculate fusion power + components
 
-        fusion_reactions = reactions.FusionReactionRate(self.plasma_profile)
+        fusion_reactions = reactions.FusionReactionRate()
         fusion_reactions.deuterium_branching(
             physics_variables.temp_plasma_ion_vol_avg_kev
         )
@@ -723,7 +723,6 @@ class Physics(Model):
         # Calculate radiation power
 
         radpwrdata = physics_funcs.calculate_radiation_powers(
-            self.plasma_profile,
             physics_variables.nd_plasma_electron_on_axis,
             physics_variables.rminor,
             physics_variables.b_plasma_toroidal_on_axis,
@@ -1658,14 +1657,14 @@ class Physics(Model):
 
         # Calculate the effective charge (zeff) profile across the plasma
         # Returns an array of zeff at each radial point
-        zeff_profile = np.zeros_like(self.plasma_profile.teprofile.profile_y)
+        zeff_profile = np.zeros_like(physics_variables.te_profile_y)
         for i in range(len(zeff_profile)):
             zeff_profile[i] = 0.0
             for imp in range(impurity_radiation_module.N_IMPURITIES):
                 zeff_profile[i] += (
                     impurity_radiation_module.f_nd_impurity_electron_array[imp]
                     * impurity_radiation.zav_of_te(
-                        imp, np.array([self.plasma_profile.teprofile.profile_y[i]])
+                        imp, np.array([physics_variables.te_profile_y[i]])
                     ).squeeze()
                     ** 2
                 )
@@ -1673,7 +1672,7 @@ class Physics(Model):
 
         # Assign the charge profiles of each species
         n_impurities = impurity_radiation_module.N_IMPURITIES
-        te_profile = self.plasma_profile.teprofile.profile_y
+        te_profile = physics_variables.te_profile_y
         n_points = len(te_profile)
         # Create a 2D array: (n_impurities, n_points)
         charge_profiles = np.zeros((n_impurities, n_points))
@@ -2375,7 +2374,7 @@ class Physics(Model):
                             str1 + f" at point {i}",
                             f"(f_nd_impurity_electrons{imp}_{i})",
                             impurity_radiation_module.f_nd_impurity_electrons[imp]
-                            * self.plasma_profile.neprofile.profile_y[i],
+                            * physics_variables.ne_profile_y[i],
                             "OP ",
                         )
 
@@ -4754,10 +4753,9 @@ class PlasmaInductance:
 class DetailedPhysics(Model):
     """Class to hold detailed physics models for plasma processing."""
 
-    def __init__(self, plasma_profile):
+    def __init__(self):
         self.outfile = constants.NOUT
         self.mfile = constants.MFILE
-        self.plasma_profile = plasma_profile
 
     def output(self):
         self.run()
@@ -4775,8 +4773,8 @@ class DetailedPhysics(Model):
 
         physics_variables.len_plasma_debye_electron_profile = (
             self.calculate_debye_length(
-                temp_plasma_species_kev=self.plasma_profile.teprofile.profile_y,
-                nd_plasma_species=self.plasma_profile.neprofile.profile_y,
+                temp_plasma_species_kev=physics_variables.te_profile_y,
+                nd_plasma_species=physics_variables.ne_profile_y,
             )
         )
 
@@ -4786,7 +4784,7 @@ class DetailedPhysics(Model):
 
         physics_variables.vel_plasma_electron_profile = (
             self.calculate_relativistic_particle_speed(
-                e_kinetic=self.plasma_profile.teprofile.profile_y
+                e_kinetic=physics_variables.te_profile_y
                 * constants.KILOELECTRON_VOLT,
                 mass=constants.ELECTRON_MASS,
             )
@@ -4794,7 +4792,7 @@ class DetailedPhysics(Model):
 
         physics_variables.vel_plasma_deuteron_profile = (
             self.calculate_relativistic_particle_speed(
-                e_kinetic=self.plasma_profile.teprofile.profile_y
+                e_kinetic=physics_variables.te_profile_y
                 * constants.KILOELECTRON_VOLT
                 * physics_variables.f_temp_plasma_ion_electron,
                 mass=constants.DEUTERON_MASS,
@@ -4803,7 +4801,7 @@ class DetailedPhysics(Model):
 
         physics_variables.vel_plasma_triton_profile = (
             self.calculate_relativistic_particle_speed(
-                e_kinetic=self.plasma_profile.teprofile.profile_y
+                e_kinetic=physics_variables.te_profile_y
                 * constants.KILOELECTRON_VOLT
                 * physics_variables.f_temp_plasma_ion_electron,
                 mass=constants.TRITON_MASS,
@@ -4812,7 +4810,7 @@ class DetailedPhysics(Model):
 
         physics_variables.vel_plasma_alpha_thermal_profile = (
             self.calculate_relativistic_particle_speed(
-                e_kinetic=self.plasma_profile.teprofile.profile_y
+                e_kinetic=physics_variables.te_profile_y
                 * constants.KILOELECTRON_VOLT
                 * physics_variables.f_temp_plasma_ion_electron,
                 mass=constants.ALPHA_MASS,
@@ -4831,7 +4829,7 @@ class DetailedPhysics(Model):
         # ============================
 
         physics_variables.freq_plasma_electron_profile = self.calculate_plasma_frequency(
-            nd_particle=self.plasma_profile.neprofile.profile_y,
+            nd_particle=physics_variables.ne_profile_y,
             m_particle=constants.ELECTRON_MASS,
             z_particle=1.0,
         )

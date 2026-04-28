@@ -10,7 +10,7 @@ from scipy import integrate
 
 from process.core import constants
 from process.core.exceptions import ProcessError, ProcessValueError
-from process.data_structure import impurity_radiation_module
+from process.data_structure import impurity_radiation_module, physics_variables
 
 logger = logging.getLogger(__name__)
 
@@ -531,24 +531,16 @@ class ImpurityRadiation:
     element to find the total impurity radiation loss.
     """
 
-    def __init__(self, plasma_profile):
-        """
-        :param plasma_profile: Plasma profile class, parameterises the density and temperature profiles.
-        :type plasma_profile: Plasma profile class
-        """
-        self.plasma_profile = plasma_profile
-        self.rho = plasma_profile.neprofile.profile_x
-        self.rhodx = plasma_profile.neprofile.profile_dx
+    def __init__(self):
+        self.rho = physics_variables.ne_profile_x
+        self.rhodx = physics_variables.ne_profile_dx
         self.imp = np.nonzero(
             impurity_radiation_module.f_nd_impurity_electron_array > 1.0e-30
         )[0]
 
-        self.pimp_profile = np.zeros(self.plasma_profile.profile_size)
-        self.pden_impurity_rad_profile = np.zeros(self.plasma_profile.profile_size)
-        self.pden_impurity_core_rad_profile = np.zeros(self.plasma_profile.profile_size)
-
-        self.pden_impurity_rad_total_mw = 0.0
-        self.pden_impurity_core_rad_total_mw = 0.0
+        self.pimp_profile = np.zeros(physics_variables.n_plasma_profile_elements)
+        self.pden_impurity_rad_profile = np.zeros(physics_variables.n_plasma_profile_elements)
+        self.pden_impurity_core_rad_profile = np.zeros(physics_variables.n_plasma_profile_elements)
 
     def map_imprad_profile(self):
         """Map imprad_profile() over each impurity element index."""
@@ -572,8 +564,8 @@ class ImpurityRadiation:
 
         pimp = pimpden(
             imp_element_index,
-            self.plasma_profile.neprofile.profile_y,
-            self.plasma_profile.teprofile.profile_y,
+            physics_variables.ne_profile_y,
+            physics_variables.te_profile_y,
         )
 
         self.pimp_profile = np.add(self.pimp_profile, pimp)
@@ -607,10 +599,10 @@ class ImpurityRadiation:
         """
 
         # 2.0e-6 converts from W/m^3 to MW/m^3 and also accounts for both sides of the plasma
-        self.pden_impurity_rad_total_mw = 2.0e-6 * integrate.simpson(
+        impurity_radiation_module.pden_impurity_rad_total_mw = 2.0e-6 * integrate.simpson(
             self.pden_impurity_rad_profile, x=self.rho, dx=self.rhodx
         )
-        self.pden_impurity_core_rad_total_mw = 2.0e-6 * integrate.simpson(
+        impurity_radiation_module.pden_impurity_core_rad_total_mw = 2.0e-6 * integrate.simpson(
             self.pden_impurity_core_rad_profile, x=self.rho, dx=self.rhodx
         )
 

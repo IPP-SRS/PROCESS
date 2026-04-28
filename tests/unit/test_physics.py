@@ -62,7 +62,7 @@ def physics():
         PlasmaInductance(),
         PlasmaDensityLimit(),
         PlasmaExhaust(),
-        PlasmaBootstrapCurrent(plasma_profile=PlasmaProfile()),
+        PlasmaBootstrapCurrent(),
         PlasmaConfinementTime(),
         PlasmaConfinementTransition(),
         PlasmaCurrent(),
@@ -565,9 +565,7 @@ def test_bootstrap_fraction_sauter(bootstrapfractionsauterparam, monkeypatch, ph
 
     monkeypatch.setattr(physics_variables, "alphat", bootstrapfractionsauterparam.alphat)
     physics.plasma_profile.run()
-    bfs, _ = physics.plasma_bootstrap_current.bootstrap_fraction_sauter(
-        physics.plasma_profile
-    )
+    bfs, _ = physics.plasma_bootstrap_current.bootstrap_fraction_sauter()
 
     assert bfs == pytest.approx(bootstrapfractionsauterparam.expected_bfs)
 
@@ -3606,8 +3604,13 @@ def test_detailed_physics_run_computes_profiles():
     physics_variables.b_plasma_toroidal_profile = (
         np.ones(2 * len(plasma.neprofile.profile_y)) * 5.0
     )
+    # Mirror profile arrays to module-level variables (normally set by PlasmaProfile.run())
+    physics_variables.te_profile_x = plasma.teprofile.profile_x
+    physics_variables.te_profile_y = plasma.teprofile.profile_y
+    physics_variables.ne_profile_x = plasma.neprofile.profile_x
+    physics_variables.ne_profile_y = plasma.neprofile.profile_y
 
-    dp = DetailedPhysics(plasma)
+    dp = DetailedPhysics()
 
     # Run should complete without error and populate physics_variables
     dp.run()

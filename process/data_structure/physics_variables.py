@@ -773,6 +773,30 @@ j_plasma_bootstrap_sauter_profile: list[float] = None
 n_plasma_profile_elements: int = None
 """Number of elements in plasma profile"""
 
+ne_profile_x: list[float] = None
+"""Normalised minor radius array for electron density profile"""
+
+ne_profile_y: list[float] = None
+"""Electron density profile values (m^-3)"""
+
+ne_profile_dx: float = None
+"""Step size of normalised minor radius for electron density profile"""
+
+ne_profile_integ: float = None
+"""Integral of the electron density profile"""
+
+te_profile_x: list[float] = None
+"""Normalised minor radius array for electron temperature profile"""
+
+te_profile_y: list[float] = None
+"""Electron temperature profile values (keV)"""
+
+te_profile_dx: float = None
+"""Step size of normalised minor radius for electron temperature profile"""
+
+te_profile_integ: float = None
+"""Integral of the electron temperature profile"""
+
 pres_plasma_thermal_vol_avg: float = None
 """Volume averaged thermal plasma pressure (no fast ions or beam pressure) (Pa)"""
 
@@ -1548,6 +1572,14 @@ def init_physics_variables():
         pres_plasma_fuel_profile, \
         j_plasma_on_axis, \
         n_plasma_profile_elements, \
+        ne_profile_x, \
+        ne_profile_y, \
+        ne_profile_dx, \
+        ne_profile_integ, \
+        te_profile_x, \
+        te_profile_y, \
+        te_profile_dx, \
+        te_profile_integ, \
         f_dd_branching_trit, \
         pden_plasma_alpha_mw, \
         pden_alpha_total_mw, \
@@ -1838,6 +1870,14 @@ def init_physics_variables():
     j_plasma_on_axis = 0.0
     j_plasma_bootstrap_sauter_profile = []
     n_plasma_profile_elements = 500
+    ne_profile_x = []
+    ne_profile_y = []
+    ne_profile_dx = 0.0
+    ne_profile_integ = 0.0
+    te_profile_x = []
+    te_profile_y = []
+    te_profile_dx = 0.0
+    te_profile_integ = 0.0
     f_dd_branching_trit = 0.0
     pden_plasma_alpha_mw = 0.0
     pden_alpha_total_mw = 0.0

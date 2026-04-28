@@ -2020,7 +2020,7 @@ class Stellarator(Model):
 
         #  Calculate fusion power
 
-        fusion_reactions = reactions.FusionReactionRate(self.plasma_profile)
+        fusion_reactions = reactions.FusionReactionRate()
         fusion_reactions.deuterium_branching(
             physics_variables.temp_plasma_ion_vol_avg_kev
         )
@@ -2168,7 +2168,6 @@ class Stellarator(Model):
 
         #  Calculate radiation power
         radpwr_data = physics_funcs.calculate_radiation_powers(
-            self.plasma_profile,
             physics_variables.nd_plasma_electron_on_axis,
             physics_variables.rminor,
             physics_variables.b_plasma_toroidal_on_axis,

@@ -51,6 +51,12 @@ pden_impurity_lz_nd_temp_array: list[float] = None
 
 impurity_arr_zav: list[float] = None
 
+pden_impurity_rad_total_mw: float = None
+"""Total impurity radiation power density (MW/m^3)"""
+
+pden_impurity_core_rad_total_mw: float = None
+"""Core impurity radiation power density (MW/m^3)"""
+
 
 def init_impurity_radiation_module():
     global \
@@ -66,7 +72,9 @@ def init_impurity_radiation_module():
         impurity_arr_len_tab, \
         temp_impurity_keV_array, \
         pden_impurity_lz_nd_temp_array, \
-        impurity_arr_zav
+        impurity_arr_zav, \
+        pden_impurity_rad_total_mw, \
+        pden_impurity_core_rad_total_mw
 
     radius_plasma_core_norm = 0.6
     f_p_plasma_core_rad_reduction = 1.0
@@ -111,3 +119,5 @@ def init_impurity_radiation_module():
     temp_impurity_keV_array = np.zeros((N_IMPURITIES, 200))
     pden_impurity_lz_nd_temp_array = np.zeros((N_IMPURITIES, 200))
     impurity_arr_zav = np.zeros((N_IMPURITIES, 200))
+    pden_impurity_rad_total_mw = 0.0
+    pden_impurity_core_rad_total_mw = 0.0

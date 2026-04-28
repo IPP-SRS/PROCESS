@@ -6,7 +6,6 @@ from scipy import integrate
 
 from process.core import constants
 from process.data_structure import physics_variables
-from process.models.physics.plasma_profiles import PlasmaProfile
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +75,6 @@ class FusionReactionRate:
     fusion power.
 
     Attributes:
-         plasma_profile (PlasmaProfile): The parameterized temperature and density profiles of the plasma.
          sigmav_dt_average (float): Average fusion reaction rate <sigma v> for D-T.
          dhe3_power_density (float): Fusion power density produced by the D-3He reaction.
          dd_power_density (float): Fusion power density produced by the D-D reactions.
@@ -95,18 +93,7 @@ class FusionReactionRate:
           doi: https://doi.org/10.1088/0029-5515/32/4/i07.
     """
 
-    def __init__(self, plasma_profile: PlasmaProfile):
-        """
-        Initialize the FusionReactionRate class with the given plasma profile.
-
-        Parameters
-        ----------
-        plasma_profile:
-            The parameterized temperature and density profiles of the plasma.
-
-
-        """
-        self.plasma_profile = plasma_profile
+    def __init__(self):
         self.sigmav_dt_average = 0.0
         self.dhe3_power_density = 0.0
         self.dd_power_density = 0.0
@@ -176,13 +163,13 @@ class FusionReactionRate:
                     physics_variables.temp_plasma_ion_vol_avg_kev
                     / physics_variables.temp_plasma_electron_vol_avg_kev
                 )
-                * self.plasma_profile.teprofile.profile_y,
+                * physics_variables.te_profile_y,
                 dt,
             )
             * physics_variables.f_plasma_fuel_deuterium
             * physics_variables.f_plasma_fuel_tritium
             * (
-                self.plasma_profile.neprofile.profile_y
+                physics_variables.ne_profile_y
                 * (
                     physics_variables.nd_plasma_fuel_ions_vol_avg
                     / physics_variables.nd_plasma_electrons_vol_avg
@@ -193,9 +180,9 @@ class FusionReactionRate:
 
         # Calculate the fusion reaction rate integral using Simpson's rule
         sigmav = integrate.simpson(
-            fusion_rate_integral(self.plasma_profile, dt),
-            x=self.plasma_profile.neprofile.profile_x,
-            dx=self.plasma_profile.neprofile.profile_dx,
+            fusion_rate_integral(dt),
+            x=physics_variables.ne_profile_x,
+            dx=physics_variables.ne_profile_dx,
         )
 
         # Store the average fusion reaction rate
@@ -270,9 +257,9 @@ class FusionReactionRate:
 
         # Calculate the fusion reaction rate integral using Simpson's rule
         sigmav = integrate.simpson(
-            fusion_rate_integral(self.plasma_profile, dhe3),
-            x=self.plasma_profile.neprofile.profile_x,
-            dx=self.plasma_profile.neprofile.profile_dx,
+            fusion_rate_integral(dhe3),
+            x=physics_variables.ne_profile_x,
+            dx=physics_variables.ne_profile_dx,
         )
 
         physics_variables.fusrat_plasma_dhe3_profile = (
@@ -281,13 +268,13 @@ class FusionReactionRate:
                     physics_variables.temp_plasma_ion_vol_avg_kev
                     / physics_variables.temp_plasma_electron_vol_avg_kev
                 )
-                * self.plasma_profile.teprofile.profile_y,
+                * physics_variables.te_profile_y,
                 dhe3,
             )
             * physics_variables.f_plasma_fuel_deuterium
             * physics_variables.f_plasma_fuel_helium3
             * (
-                self.plasma_profile.neprofile.profile_y
+                physics_variables.ne_profile_y
                 * (
                     physics_variables.nd_plasma_fuel_ions_vol_avg
                     / physics_variables.nd_plasma_electrons_vol_avg
@@ -366,9 +353,9 @@ class FusionReactionRate:
 
         # Calculate the fusion reaction rate integral using Simpson's rule
         sigmav = integrate.simpson(
-            fusion_rate_integral(self.plasma_profile, dd1),
-            x=self.plasma_profile.neprofile.profile_x,
-            dx=self.plasma_profile.neprofile.profile_dx,
+            fusion_rate_integral(dd1),
+            x=physics_variables.ne_profile_x,
+            dx=physics_variables.ne_profile_dx,
         )
 
         physics_variables.fusrat_plasma_dd_helion_profile = (
@@ -377,13 +364,13 @@ class FusionReactionRate:
                     physics_variables.temp_plasma_ion_vol_avg_kev
                     / physics_variables.temp_plasma_electron_vol_avg_kev
                 )
-                * self.plasma_profile.teprofile.profile_y,
+                * physics_variables.te_profile_y,
                 dd1,
             )
             * physics_variables.f_plasma_fuel_deuterium
             * physics_variables.f_plasma_fuel_deuterium
             * (
-                self.plasma_profile.neprofile.profile_y
+                physics_variables.ne_profile_y
                 * (
                     physics_variables.nd_plasma_fuel_ions_vol_avg
                     / physics_variables.nd_plasma_electrons_vol_avg
@@ -465,9 +452,9 @@ class FusionReactionRate:
 
         # Calculate the fusion reaction rate integral using Simpson's rule
         sigmav = integrate.simpson(
-            fusion_rate_integral(self.plasma_profile, dd2),
-            x=self.plasma_profile.neprofile.profile_x,
-            dx=self.plasma_profile.neprofile.profile_dx,
+            fusion_rate_integral(dd2),
+            x=physics_variables.ne_profile_x,
+            dx=physics_variables.ne_profile_dx,
         )
 
         physics_variables.fusrat_plasma_dd_triton_profile = (
@@ -476,13 +463,13 @@ class FusionReactionRate:
                     physics_variables.temp_plasma_ion_vol_avg_kev
                     / physics_variables.temp_plasma_electron_vol_avg_kev
                 )
-                * self.plasma_profile.teprofile.profile_y,
+                * physics_variables.te_profile_y,
                 dd2,
             )
             * physics_variables.f_plasma_fuel_deuterium
             * physics_variables.f_plasma_fuel_deuterium
             * (
-                self.plasma_profile.neprofile.profile_y
+                physics_variables.ne_profile_y
                 * (
                     physics_variables.nd_plasma_fuel_ions_vol_avg
                     / physics_variables.nd_plasma_electrons_vol_avg
@@ -632,14 +619,12 @@ class BoschHaleConstants:
 
 
 def fusion_rate_integral(
-    plasma_profile: PlasmaProfile, reaction_constants: BoschHaleConstants
+    reaction_constants: BoschHaleConstants,
 ) -> np.ndarray:
     """Evaluate the integrand for the fusion power integration.
 
     Parameters
     ----------
-    plasma_profile :
-        Parameterised temperature and density profiles.
     reactionconstants :
         Bosch-Hale reaction constants.
 
@@ -660,7 +645,7 @@ def fusion_rate_integral(
     ion_temperature_profile = (
         physics_variables.temp_plasma_ion_vol_avg_kev
         / physics_variables.temp_plasma_electron_vol_avg_kev
-    ) * plasma_profile.teprofile.profile_y
+    ) * physics_variables.te_profile_y
 
     # Number of fusion reactions per unit volume per particle volume density (m^3/s)
     sigv = bosch_hale_reactivity(ion_temperature_profile, reaction_constants)
@@ -673,12 +658,12 @@ def fusion_rate_integral(
     # Set each point in the desnity profile as a fraction of the volume averaged desnity
     density_profile_normalised = (
         1.0 / physics_variables.nd_plasma_electrons_vol_avg
-    ) * plasma_profile.neprofile.profile_y
+    ) * physics_variables.ne_profile_y
 
     # Calculate a volume averaged fusion reaction integral that allows for fusion power to be scaled with
     # just the volume averged ion density.
     return (
-        2.0 * plasma_profile.teprofile.profile_x * sigv * density_profile_normalised**2
+        2.0 * physics_variables.te_profile_x * sigv * density_profile_normalised**2
     )
 
 

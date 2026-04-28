@@ -94,6 +94,10 @@ class NeProfile(Profile):
             physics_variables.alphan,
         )
         self.integrate_profile_y()
+        physics_variables.ne_profile_x = self.profile_x
+        physics_variables.ne_profile_y = self.profile_y
+        physics_variables.ne_profile_dx = self.profile_dx
+        physics_variables.ne_profile_integ = self.profile_integ
 
     def calculate_profile_y(
         self,
@@ -250,6 +254,10 @@ class TeProfile(Profile):
             physics_variables.tbeta,
         )
         self.integrate_profile_y()
+        physics_variables.te_profile_x = self.profile_x
+        physics_variables.te_profile_y = self.profile_y
+        physics_variables.te_profile_dx = self.profile_dx
+        physics_variables.te_profile_integ = self.profile_integ
 
     def calculate_profile_y(
         self,

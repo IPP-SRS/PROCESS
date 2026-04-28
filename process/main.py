@@ -709,9 +709,7 @@ class Models:
         self.plasma_inductance = PlasmaInductance()
         self.plasma_density_limit = PlasmaDensityLimit()
         self.plasma_exhaust = PlasmaExhaust()
-        self.plasma_bootstrap_current = PlasmaBootstrapCurrent(
-            plasma_profile=self.plasma_profile
-        )
+        self.plasma_bootstrap_current = PlasmaBootstrapCurrent()
         self.plasma_confinement = PlasmaConfinementTime()
         self.plasma_transition = PlasmaConfinementTransition()
         self.plasma_current = PlasmaCurrent()
@@ -727,9 +725,7 @@ class Models:
             plasma_transition=self.plasma_transition,
             plasma_current=self.plasma_current,
         )
-        self.physics_detailed = DetailedPhysics(
-            plasma_profile=self.plasma_profile,
-        )
+        self.physics_detailed = DetailedPhysics()
         self.neoclassics = Neoclassics()
         if data_structure.stellarator_variables.istell != 0:
             self.stellarator = Stellarator(
