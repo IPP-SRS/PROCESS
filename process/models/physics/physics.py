@@ -867,8 +867,6 @@ class Physics(Model):
             nd_plasma_electron_line=physics_variables.nd_plasma_electron_line,
             eps=physics_variables.eps,
             hfact=physics_variables.hfact,
-            i_confinement_time=physics_variables.i_confinement_time,
-            i_plasma_ignited=physics_variables.i_plasma_ignited,
             kappa=physics_variables.kappa,
             kappa95=physics_variables.kappa95,
             p_non_alpha_charged_mw=physics_variables.p_non_alpha_charged_mw,

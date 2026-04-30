@@ -2311,8 +2311,6 @@ class Stellarator(Model):
             physics_variables.nd_plasma_electron_line,
             physics_variables.eps,
             physics_variables.hfact,
-            physics_variables.i_confinement_time,
-            physics_variables.i_plasma_ignited,
             physics_variables.kappa,
             physics_variables.kappa95,
             physics_variables.p_non_alpha_charged_mw,
