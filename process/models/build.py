@@ -6,7 +6,10 @@ import numpy as np
 from process.core import constants
 from process.core import process_output as po
 from process.core.model import Model
-from process.data_structure.build_variables import TFCSRadialConfiguration
+from process.data_structure.build_variables import (
+    CSPrecompressionConfiguration,
+    TFCSRadialConfiguration,
+)
 from process.data_structure.physics_variables import DivertorNumberModels
 from process.models.physics.current_drive import (
     CurrentDriveMethodType,
@@ -92,7 +95,8 @@ class Build(Model):
         tuple[float, float]
             Tuple containing (radius_beam_tangency, radius_beam_tangency_max)
         """
-        # Have kept the single letter variable names to match the original code and documentation diagram.
+        # Have kept the single letter variable names to match the original code and
+        # documentation diagram.
         radius_beam_tangency = f_radius_beam_tangency_rmajor * rmajor
 
         omega = 2.0 * np.pi / n_tf_coils
@@ -130,7 +134,8 @@ class Build(Model):
             radius_beam_tangency_max = f * np.cos(eps) - 0.5e0 * c
         else:
             logger.error(
-                "Max beam tangency radius set =0 temporarily; change dx_beam_duct. %s %s",
+                "Max beam tangency radius set =0 temporarily; "
+                "change dx_beam_duct. %s %s",
                 g,
                 c,
             )
@@ -141,8 +146,10 @@ class Build(Model):
     def calculate_vertical_build(self, output: bool):
         """Determines the vertical build of the machine.
 
-        This method calculates various parameters related to the vertical build of the machine,
-        such as thicknesses, radii, and areas. Results can be outputted with the `output` flag.
+        This method calculates various parameters related
+        to the vertical build of the machine,
+        such as thicknesses, radii, and areas.
+        Results can be outputted with the `output` flag.
 
         Parameters
         ----------
@@ -161,7 +168,7 @@ class Build(Model):
         if output:
             po.oheadr(self.outfile, "Vertical Build")
 
-            po.ovarin(
+            po.ovarre(
                 self.mfile,
                 "Divertor null switch",
                 "(i_single_null)",
@@ -776,7 +783,9 @@ class Build(Model):
             )
             po.ocmmnt(
                 self.outfile,
-                "\n*Cryostat roof allowance includes uppermost PF coil and outer thermal shield.\n*Cryostat floor allowance includes lowermost PF coil, outer thermal shield and gravity support.",
+                "\n*Cryostat roof allowance includes uppermost PF coil and "
+                "outer thermal shield.\n*Cryostat floor allowance "
+                "includes lowermost PF coil, outer thermal shield and gravity support.",
             )
 
         # Output the cdivertor geometry
@@ -934,206 +943,206 @@ class Build(Model):
                 po.oblnkl(self.outfile)
                 ptop_radial = self.data.physics.rmajor - triu * self.data.physics.rminor
                 ptop_vertical = kap * self.data.physics.rminor
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma top position, radial (m)",
                     "(ptop_radial)",
                     ptop_radial,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma top position, vertical (m)",
                     "(ptop_vertical)",
                     ptop_vertical,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma geometric centre, radial (m)",
                     "(rmajor.)",
                     self.data.physics.rmajor,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma geometric centre, vertical (m)",
                     "(0.0)",
                     0.0e0,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma lower triangularity",
                     "(tril)",
                     tril,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma elongation",
                     "(kappa.)",
                     kap,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "TF coil vertical offset (m)",
                     "(dz_tf_plasma_centre_offset)",
                     self.data.build.dz_tf_plasma_centre_offset,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma outer arc radius of curvature (m)",
                     "(rco)",
                     rco,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma inner arc radius of curvature (m)",
                     "(rci)",
                     rci,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile, "Plasma lower X-pt, radial (m)", "(rxpt)", rxpt, "OP "
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma lower X-pt, vertical (m)",
                     "(zxpt)",
                     zxpt,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Poloidal plane angle between vertical and inner leg (rad)",
                     "(thetai)",
                     thetai,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Poloidal plane angle between vertical and outer leg (rad)",
                     "(thetao)",
                     thetao,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Poloidal plane angle between inner leg and plate (rad)",
                     "(betai)",
                     self.data.divertor.betai,
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Poloidal plane angle between outer leg and plate (rad)",
                     "(betao)",
                     self.data.divertor.betao,
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Inner divertor leg poloidal length (m)",
                     "(plsepi)",
                     self.data.build.plsepi,
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Outer divertor leg poloidal length (m)",
                     "(plsepo)",
                     self.data.build.plsepo,
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Inner divertor plate length (m)",
                     "(plleni)",
                     self.data.build.plleni,
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Outer divertor plate length (m)",
                     "(plleno)",
                     self.data.build.plleno,
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Inner strike point, radial (m)",
                     "(rspi)",
                     rspi,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Inner strike point, vertical (m)",
                     "(zspi)",
                     zspi,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile, "Inner plate top, radial (m)", "(rplti)", rplti, "OP "
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Inner plate top, vertical (m)",
                     "(zplti)",
                     zplti,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Inner plate bottom, radial (m)",
                     "(rplbi)",
                     rplbi,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Inner plate bottom, vertical (m)",
                     "(zplbi)",
                     zplbi,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Outer strike point, radial (m)",
                     "(rspo)",
                     self.data.build.rspo,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Outer strike point, vertical (m)",
                     "(zspo)",
                     zspo,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile, "Outer plate top, radial (m)", "(rplto)", rplto, "OP "
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Outer plate top, vertical (m)",
                     "(zplto)",
                     zplto,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Outer plate bottom, radial (m)",
                     "(rplbo)",
                     rplbo,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Outer plate bottom, vertical (m)",
                     "(zplbo)",
                     zplbo,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Calculated maximum divertor height (m)",
                     "(divht)",
@@ -1148,302 +1157,302 @@ class Build(Model):
                 # Assume upper and lower divertors geometries are symmetric.
                 ptop_radial = self.data.physics.rmajor - triu * self.data.physics.rminor
                 ptop_vertical = kap * self.data.physics.rminor
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma top position, radial (m)",
                     "(ptop_radial)",
                     ptop_radial,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma top position, vertical (m)",
                     "(ptop_vertical)",
                     ptop_vertical,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma geometric centre, radial (m)",
                     "(rmajor.)",
                     self.data.physics.rmajor,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma geometric centre, vertical (m)",
                     "(0.0)",
                     0.0e0,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma data.physics.triangularity",
                     "(tril)",
                     tril,
                     "OP ",
                 )
-                po.ovarrf(self.outfile, "Plasma elongation", "(kappa.)", kap, "OP ")
-                po.ovarrf(
+                po.ovarre(self.outfile, "Plasma elongation", "(kappa.)", kap, "OP ")
+                po.ovarre(
                     self.outfile,
                     "TF coil vertical offset (m)",
                     "(dz_tf_plasma_centre_offset)",
                     self.data.build.dz_tf_plasma_centre_offset,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile, "Plasma upper X-pt, radial (m)", "(rxpt)", rxpt, "OP "
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma upper X-pt, vertical (m)",
                     "(-zxpt)",
                     -zxpt,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma outer arc radius of curvature (m)",
                     "(rco)",
                     rco,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma inner arc radius of curvature (m)",
                     "(rci)",
                     rci,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile, "Plasma lower X-pt, radial (m)", "(rxpt)", rxpt, "OP "
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma lower X-pt, vertical (m)",
                     "(zxpt)",
                     zxpt,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Poloidal plane angle between vertical and inner leg (rad)",
                     "(thetai)",
                     thetai,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Poloidal plane angle between vertical and outer leg (rad)",
                     "(thetao)",
                     thetao,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Poloidal plane angle between inner leg and plate (rad)",
                     "(betai)",
                     self.data.divertor.betai,
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Poloidal plane angle between outer leg and plate (rad)",
                     "(betao)",
                     self.data.divertor.betao,
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Inner divertor leg poloidal length (m)",
                     "(plsepi)",
                     self.data.build.plsepi,
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Outer divertor leg poloidal length (m)",
                     "(plsepo)",
                     self.data.build.plsepo,
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Inner divertor plate length (m)",
                     "(lleni)",
                     self.data.build.plleni,
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Outer divertor plate length (m)",
                     "(plleno)",
                     self.data.build.plleno,
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Upper inner strike point, radial (m)",
                     "(rspi)",
                     rspi,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Upper inner strike point, vertical (m)",
                     "(-zspi)",
                     -zspi,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Upper inner plate top, radial (m)",
                     "(rplti)",
                     rplti,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Upper inner plate top, vertical (m)",
                     "(-zplti)",
                     -zplti,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Upper inner plate bottom, radial (m)",
                     "(rplbi)",
                     rplbi,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Upper inner plate bottom, vertical (m)",
                     "(-zplbi)",
                     -zplbi,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Upper outer strike point, radial (m)",
                     "(rspo)",
                     self.data.build.rspo,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Upper outer strike point, vertical (m)",
                     "(-zspo)",
                     -zspo,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Upper outer plate top, radial (m)",
                     "(rplto)",
                     rplto,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Upper outer plate top, vertical (m)",
                     "(-zplto)",
                     -zplto,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Upper outer plate bottom, radial (m)",
                     "(rplbo)",
                     rplbo,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Upper outer plate bottom, vertical (m)",
                     "(-zplbo)",
                     -zplbo,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Lower inner strike point, radial (m)",
                     "(rspi)",
                     rspi,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Lower inner strike point, vertical (m)",
                     "(zspi)",
                     zspi,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Lower inner plate top, radial (m)",
                     "(rplti)",
                     rplti,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Lower inner plate top, vertical (m)",
                     "(zplti)",
                     zplti,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Lower inner plate bottom, radial (m)",
                     "(rplbi)",
                     rplbi,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Lower inner plate bottom, vertical (m)",
                     "(zplbi)",
                     zplbi,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Lower outer strike point, radial (m)",
                     "(rspo)",
                     self.data.build.rspo,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Lower outer strike point, vertical (m)",
                     "(zspo)",
                     zspo,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Lower outer plate top, radial (m)",
                     "(rplto)",
                     rplto,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Lower outer plate top, vertical (m)",
                     "(zplto)",
                     zplto,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Lower outer plate bottom, radial (m)",
                     "(rplbo)",
                     rplbo,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Lower outer plate bottom, vertical (m)",
                     "(zplbo)",
                     zplbo,
                     "OP ",
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Calculated maximum divertor height (m)",
                     "(divht)",
@@ -1521,7 +1530,8 @@ class Build(Model):
         tuple[float, float, int]
             Tuple containing:
             - ripple: Calculated ripple at plasma edge (percent)
-            - r_tf_outboard_midmin: Minimum r_tf_outboard_mid that yields the specified maximum ripple (m)
+            - r_tf_outboard_midmin: Minimum r_tf_outboard_mid that yields the specified
+                maximum ripple (m)
             - flag: Applicability flag (0 = OK, non-zero = fitted-range concern)
 
         Notes
@@ -1529,7 +1539,8 @@ class Build(Model):
         - Fitted coefficients originate from parametric MAGINT runs (M. Kovari, 2014).
         - Picture-frame coil analytical model (Ken McClements, 2022) is used when
         `i_tf_shape == 2` and gives approximate results (within ~10% of numerical).
-        - The routine sets an applicability flag when fitted-range assumptions are exceeded.
+        - The routine sets an applicability flag when fitted-range assumptions are
+        exceeded.
         """
         if i_tf_sup == 1:
             # Minimal inboard WP radius [m]
@@ -1566,7 +1577,8 @@ class Build(Model):
             # Ken McClements ST picture frame coil analytical ripple calc
             # Calculated ripple for coil at r_tf_outboard_mid (%)
             ripple = 100.0e0 * ((rmajor + rminor) / r_tf_outboard_mid) ** (n_tf_coils)
-            #  Calculated r_tf_outboard_mid to produce a ripple of amplitude ripple_b_tf_plasma_edge_max
+            #  Calculated r_tf_outboard_mid to produce a ripple of amplitude
+            # ripple_b_tf_plasma_edge_max
             r_tf_outboard_midmin = (rmajor + rminor) / (
                 (0.01e0 * ripple_b_tf_plasma_edge_max) ** (1.0e0 / n_tf_coils)
             )
@@ -1585,7 +1597,8 @@ class Build(Model):
                 * ((rmajor + rminor) / r_tf_outboard_mid) ** (n_tf_coils - c2)
             )
 
-            #  Calculated r_tf_outboard_mid to produce a ripple of amplitude ripple_b_tf_plasma_edge_max
+            #  Calculated r_tf_outboard_mid to produce a ripple of amplitude
+            # ripple_b_tf_plasma_edge_max
             base = 0.01 * ripple_b_tf_plasma_edge_max / c1
             # Avoid potential negative or complex result: kludge base to be
             # small and positive if required
@@ -1659,43 +1672,9 @@ class Build(Model):
                 self.data.build.dz_fw_plasma_gap,
             )
 
-        # Calculate pre-compression structure thickness is self.data.build.i_cs_precomp=1
-        if (
-            self.data.build.i_cs_precomp == 1
-            and self.data.build.i_tf_inside_cs == TFCSRadialConfiguration.TF_OUTSIDE_CS
-        ):
-            self.data.build.dr_cs_precomp = self.data.build.fseppc / (
-                2.0e0
-                * np.pi
-                * self.data.build.fcspc
-                * self.data.build.sigallpc
-                * (
-                    self.data.build.dr_bore
-                    + self.data.build.dr_bore
-                    + self.data.build.dr_cs
-                )
-            )
-        elif (
-            self.data.build.i_cs_precomp == 1
-            and self.data.build.i_tf_inside_cs == TFCSRadialConfiguration.TF_INSIDE_CS
-        ):
-            self.data.build.dr_cs_precomp = self.data.build.fseppc / (
-                2.0e0
-                * np.pi
-                * self.data.build.fcspc
-                * self.data.build.sigallpc
-                * (
-                    2.0 * self.data.build.dr_bore
-                    + 2.0 * self.data.build.dr_tf_inboard
-                    + 2.0 * self.data.build.dr_cs_tf_gap
-                    + self.data.build.dr_cs
-                )
-            )
-        else:
-            self.data.build.dr_cs_precomp = 0.0e0
-
         # Issue #514 Radial dimensions of inboard leg
-        # Calculate self.data.build.dr_tf_inboard if self.data.tfcoil.dr_tf_wp_with_insulation is an iteration variable (140)
+        # Calculate self.data.build.dr_tf_inboard if
+        # self.data.tfcoil.dr_tf_wp_with_insulation is an iteration variable (140)
         if 140 in self.data.numerics.ixc[0 : self.data.numerics.nvar]:
             self.data.build.dr_tf_inboard = (
                 self.data.tfcoil.dr_tf_wp_with_insulation
@@ -1704,14 +1683,34 @@ class Build(Model):
             )
 
         if self.data.build.i_tf_inside_cs == TFCSRadialConfiguration.TF_INSIDE_CS:
-            self.data.build.r_tf_inboard_in = (
+            self.data.build.r_tf_inboard_in = self.data.build.dr_bore
+            # CS bore radius [m]
+            self.data.build.dr_cs_bore = (
                 self.data.build.dr_bore
-                # NOTE: dr_bore is just the hollow space, the
-                # true dr_bore size used for flux calculations
-                # is dr_bore + dr_tf_inboard + dr_cs_tf_gap
+                + self.data.build.dr_tf_inboard
+                + self.data.build.dr_cs_tf_gap
             )
         else:
+            self.data.build.dr_cs_bore = self.data.build.dr_bore
+
+        # Calculate pre-compression structure thickness
+        if (
+            CSPrecompressionConfiguration(self.data.build.i_cs_precomp)
+            == CSPrecompressionConfiguration.CS_PRECOMPRESSION_STRUCTURE_PRESENT
+        ):
+            self.data.build.dr_cs_precomp = self.data.build.fseppc / (
+                2.0e0
+                * np.pi
+                * self.data.build.fcspc
+                * self.data.build.sigallpc
+                * (2.0 * self.data.build.dr_cs_bore + self.data.build.dr_cs)
+            )
+        else:
+            self.data.build.dr_cs_precomp = 0.0e0
+
+        if self.data.build.i_tf_inside_cs != TFCSRadialConfiguration.TF_INSIDE_CS:
             # Inboard side inner radius [m]
+            # This is not calculated above because it requires the dr_cs_precomp
             self.data.build.r_tf_inboard_in = (
                 self.data.build.dr_bore
                 + self.data.build.dr_cs
@@ -1757,11 +1756,14 @@ class Build(Model):
                     + self.data.tfcoil.drtop
                 )
 
-                # Notify user that self.data.build.r_cp_top has been set to 1.01*self.data.build.r_tf_inboard_out (lvl 2 error)
+                # Notify user that self.data.build.r_cp_top has been set to
+                # 1.01*self.data.build.r_tf_inboard_out (lvl 2 error)
                 if self.data.build.r_cp_top < 1.01e0 * self.data.build.r_tf_inboard_out:
                     logger.error(
-                        "TF CP top radius (r_cp_top) replaced by 1.01*r_tf_inboard_out -> potential top rbuild issue"
-                        f"{self.data.build.r_cp_top=} {self.data.build.r_tf_inboard_out=}"
+                        "TF CP top radius (r_cp_top) replaced by 1.01*r_tf_inboard_out "
+                        "-> potential top rbuild issue"
+                        f"{self.data.build.r_cp_top=} "
+                        f"{self.data.build.r_tf_inboard_out=}"
                     )
 
                     # self.data.build.r_cp_top correction
@@ -1774,11 +1776,14 @@ class Build(Model):
 
             # User defined self.data.build.r_cp_top
             elif self.data.build.i_r_cp_top == 1:
-                # Notify user that self.data.build.r_cp_top has been set to 1.01*self.data.build.r_tf_inboard_out (lvl 2 error)
+                # Notify user that self.data.build.r_cp_top has been set to
+                # 1.01*self.data.build.r_tf_inboard_out (lvl 2 error)
                 if self.data.build.r_cp_top < 1.01e0 * self.data.build.r_tf_inboard_out:
                     logger.error(
-                        "TF CP top radius (r_cp_top) replaced by 1.01*r_tf_inboard_out -> potential top rbuild issue"
-                        f"{self.data.build.r_cp_top=} {self.data.build.r_tf_inboard_out=}"
+                        "TF CP top radius (r_cp_top) replaced by 1.01*r_tf_inboard_out "
+                        "-> potential top rbuild issue"
+                        f"{self.data.build.r_cp_top=} "
+                        f"{self.data.build.r_tf_inboard_out=}"
                     )
 
                     # self.data.build.r_cp_top correction
@@ -1814,7 +1819,8 @@ class Build(Model):
             + self.data.tfcoil.drtop
         ):
             logger.error(
-                f"Top CP radius larger that its value determined with plasma shape {self.data.build.r_cp_top=}"
+                "Top CP radius larger that its value determined with plasma shape "
+                f"{self.data.build.r_cp_top=}"
             )
         if self.data.build.i_tf_inside_cs == TFCSRadialConfiguration.TF_INSIDE_CS:
             #  Radial position of vacuum vessel [m]
@@ -1893,7 +1899,7 @@ class Build(Model):
             + 0.5e0 * self.data.build.dr_tf_outboard
         )
 
-        # TF coil horizontal self.data.build.dr_bore [m]
+        # TF coil horizontal bore at mid-plane [m]
         self.data.build.dr_tf_inner_bore = (
             self.data.build.r_tf_outboard_mid - 0.5e0 * self.data.build.dr_tf_outboard
         ) - (self.data.build.r_tf_inboard_mid - 0.5e0 * self.data.build.dr_tf_inboard)
@@ -1984,12 +1990,15 @@ class Build(Model):
                         / self.data.physics.rmajor
                     )
                     logger.warning(
-                        "(TF coil ripple calculation) Dimensionless coil width X out of fitted range. %s",
+                        "(TF coil ripple calculation) "
+                        "Dimensionless coil width X out of fitted range. %s",
                         diagnostic,
                     )
                 elif self.data.build.ripflag == 2:
                     logger.warning(
-                        f"(TF coil ripple calculation) No of TF coils not between 16 and 20 inclusive {self.data.tfcoil.n_tf_coils=}"
+                        "(TF coil ripple calculation) "
+                        "No of TF coils not between 16 and 20 inclusive "
+                        f"{self.data.tfcoil.n_tf_coils=}"
                     )
                 else:
                     diagnostic = (
@@ -1997,11 +2006,12 @@ class Build(Model):
                     ) / self.data.build.r_tf_outboard_mid
 
                     logger.warning(
-                        "(TF coil ripple calculation) (R+a)/rtot=%s out of fitted range.",
+                        "(TF coil ripple calculation) "
+                        "(R+a)/rtot=%s out of fitted range.",
                         diagnostic,
                     )
 
-            po.ovarin(
+            po.ovarre(
                 self.outfile,
                 "TF coil radial placement switch",
                 "(i_tf_inside_cs)",
@@ -2010,11 +2020,12 @@ class Build(Model):
             po.ocmmnt(
                 self.outfile,
                 (
-                    f"  -> {TFCSRadialConfiguration(self.data.build.i_tf_inside_cs).description}"
+                    "  -> "
+                    f"{TFCSRadialConfiguration(self.data.build.i_tf_inside_cs).description}"
                 ),
             )
             po.oblnkl(self.outfile)
-            po.ovarrf(
+            po.ovarre(
                 self.outfile,
                 "Inboard build thickness (m)",
                 "(dr_inboard_build)",
@@ -2022,26 +2033,14 @@ class Build(Model):
                 "OP ",
             )
 
-            if self.data.build.i_tf_inside_cs == TFCSRadialConfiguration.TF_INSIDE_CS:
-                po.ocmmnt(
-                    self.outfile,
-                    (
-                        "\n (The stated machine dr_bore size is just for the hollow space, "
-                    ),
-                )
-                po.ocmmnt(
-                    self.outfile,
-                    (
-                        "the true dr_bore size used for calculations is dr_bore + dr_tf_inboard + dr_cs_tf_gap)\n"
-                    ),
-                )
             if (
                 self.data.build.i_tf_inside_cs == TFCSRadialConfiguration.TF_INSIDE_CS
                 and self.data.tfcoil.i_tf_bucking >= 2
             ):
                 po.ocmmnt(
                     self.outfile,
-                    "(Bore hollow space has been filled with a solid metal cyclinder to act as wedge support)\n",
+                    "(Bore hollow space has been filled with a solid metal cyclinder to"
+                    " act as wedge support)\n",
                 )
 
             # an array that holds the following information
@@ -2276,7 +2275,7 @@ class Build(Model):
 
             radius += self.data.build.dr_shld_thermal_outboard
             radial_build_data.append([
-                "Ouboard thermal shield",
+                "Outboard thermal shield",
                 "dr_shld_thermal_outboard",
                 self.data.build.dr_shld_thermal_outboard,
                 radius,
@@ -2323,7 +2322,7 @@ class Build(Model):
                     thickness,
                 )
 
-                po.ovarst(
+                po.ovarre(
                     self.mfile,
                     f"Radial build component {index}",
                     f"(radial_label({index}))",
@@ -2345,7 +2344,8 @@ class Build(Model):
             ):
                 po.ovarre(
                     self.mfile,
-                    "Width of neutral beam duct where it passes between the TF coils (m)",
+                    "Width of neutral beam duct where it passes between the "
+                    "TF coils (m)",
                     "(dx_beam_duct)",
                     self.data.current_drive.dx_beam_duct,
                 )

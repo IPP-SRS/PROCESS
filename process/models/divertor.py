@@ -6,6 +6,7 @@ from process.core import constants
 from process.core import process_output as po
 from process.core.exceptions import ProcessValueError
 from process.core.model import Model
+from process.data_structure.divertor_variables import DivertorHeatLoadModel
 from process.data_structure.physics_variables import DivertorNumberModels
 
 
@@ -51,7 +52,11 @@ class Divertor(Model):
             n_divertors=self.data.divertor.n_divertors,
         )
 
-        if self.data.divertor.i_div_heat_load == 0 and output:
+        if (
+            DivertorHeatLoadModel(self.data.divertor.i_div_heat_load)
+            == DivertorHeatLoadModel.USER_INPUT
+            and output
+        ):
             po.ovarre(
                 self.outfile,
                 "Divertor heat load (MW/m²)",
@@ -59,7 +64,10 @@ class Divertor(Model):
                 self.data.divertor.pflux_div_heat_load_mw,
             )
             return
-        if self.data.divertor.i_div_heat_load == 1:
+        if (
+            DivertorHeatLoadModel(self.data.divertor.i_div_heat_load)
+            == DivertorHeatLoadModel.PENG_CHAMBER
+        ):
             self.divtart(
                 self.data.physics.rmajor,
                 self.data.physics.rminor,
@@ -72,7 +80,10 @@ class Divertor(Model):
                 dz_divertor=self.data.divertor.dz_divertor,
             )
             return
-        if self.data.divertor.i_div_heat_load == 2:
+        if (
+            DivertorHeatLoadModel(self.data.divertor.i_div_heat_load)
+            == DivertorHeatLoadModel.WADE
+        ):
             self.divwade(
                 self.data.physics.rmajor,
                 self.data.physics.rminor,
@@ -153,11 +164,16 @@ class Divertor(Model):
 
         References
         ----------
-            - Y.-K. M. Peng, J. B. Hicks, AEA Fusion, Culham (UK), "Engineering feasibility of tight aspect ratio Tokamak (spherical torus) reactors".
+            - Y.-K. M. Peng, J. B. Hicks, AEA Fusion, Culham (UK),
+            "Engineering feasibility of tight aspect ratio Tokamak (spherical torus)
+             reactors".
               1990. https://inis.iaea.org/records/ey2rf-dah04
 
-            - Y.-K. M. Peng, J. B. Hicks, “Engineering feasibility of tight aspect ratio tokamak (spherical torus) reactors,”
-              Osti.gov, 1991. https://www.osti.gov/biblio/1022679 (accessed Mar. 24, 2025).
+            - Y.-K. M. Peng, J. B. Hicks,
+            “Engineering feasibility of tight aspect ratio tokamak (spherical torus)
+            reactors,”
+              Osti.gov, 1991. https://www.osti.gov/biblio/1022679
+              (accessed Mar. 24, 2025).
         """
         #  Thickness of centrepost + first wall at divertor height
 
@@ -202,10 +218,17 @@ class Divertor(Model):
         elif i_single_null == DivertorNumberModels.DOUBLE_NULL:
             areadv = 2.0 * (a1 + a2 + a3)
 
-        if self.data.divertor.i_div_heat_load == 1:
+        if (
+            DivertorHeatLoadModel(self.data.divertor.i_div_heat_load)
+            == DivertorHeatLoadModel.PENG_CHAMBER
+        ):
             self.data.divertor.pflux_div_heat_load_mw = p_plasma_separatrix_mw / areadv
 
-        if output and self.data.divertor.i_div_heat_load == 1:
+        if (
+            output
+            and DivertorHeatLoadModel(self.data.divertor.i_div_heat_load)
+            == DivertorHeatLoadModel.PENG_CHAMBER
+        ):
             po.osubhd(self.outfile, "Divertor Heat Load")
             po.ocmmnt(self.outfile, "Assume an expanded divertor with a gaseous target")
             po.oblnkl(self.outfile)
@@ -258,8 +281,10 @@ class Divertor(Model):
 
         This subroutine calculates the divertor heat flux for any machine,
         with either a single null or double null configuration.
-        It uses the Eich scaling (Eich et al. 2013) and spreading factor (Scarabosio et al. 2014)
-        to calculate the SOL width. This is then used with a flux expansion factor to calculate
+        It uses the Eich scaling (Eich et al. 2013) and spreading factor
+        (Scarabosio et al. 2014)
+        to calculate the SOL width.
+        This is then used with a flux expansion factor to calculate
         the wetted area and then the heat flux.
 
         Parameters
@@ -340,7 +365,8 @@ class Divertor(Model):
         # Divertor heat load
         hldiv_base = p_plasma_separatrix_mw * (1 - rad_fraction_sol) / area_wetted
 
-        # For double null, calculate heat loads to upper and lower divertors and use the highest
+        # For double null, calculate heat loads to upper and lower divertors
+        # and use the highest
         if self.data.divertor.n_divertors == 2:
             hldiv_lower = f_p_div_lower * hldiv_base
             hldiv_upper = (1.0 - f_p_div_lower) * hldiv_base

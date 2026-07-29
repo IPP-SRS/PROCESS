@@ -55,7 +55,8 @@ class Costs(Model):
         self.acc26()
 
         #  Total plant direct cost
-        # cdirt = c21 + c22 + self.data.costs.c23 + self.data.costs.c24 + self.data.costs.c25 + self.data.costs.c26
+        # cdirt = c21 + c22 + self.data.costs.c23 + self.data.costs.c24 +
+        # self.data.costs.c25 + self.data.costs.c26
         self.data.costs.cdirt = (
             self.data.costs.c21
             + self.data.costs.c22
@@ -84,7 +85,7 @@ class Costs(Model):
 
         po.oheadr(self.outfile, "Power Reactor Costs (1990 US$)")
 
-        po.ovarrf(
+        po.ovarre(
             self.outfile,
             "First wall / blanket life (years)",
             "(life_blkt)",
@@ -92,55 +93,55 @@ class Costs(Model):
         )
 
         if self.data.ife.ife != 1:
-            po.ovarrf(
+            po.ovarre(
                 self.outfile,
                 "Divertor life (years)",
                 "(life_div)",
                 self.data.costs.life_div,
             )
             if self.data.physics.itart == 1:
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Centrepost life (years)",
                     "(cplife_cal)",
                     self.data.costs.cplife_cal,
                 )
 
-        po.ovarrf(
+        po.ovarre(
             self.outfile, "Cost of electricity (m$/kWh)", "(coe)", self.data.costs.coe
         )
 
         po.osubhd(self.outfile, "Power Generation Costs :")
         if self.data.costs.ifueltyp == 1:
             po.oshead(self.outfile, "Replaceable Components Direct Capital Cost")
-            po.ovarrf(
+            po.ovarre(
                 self.outfile,
                 "First wall direct capital cost (M$)",
                 "(fwallcst)",
                 self.data.costs.fwallcst,
             )
-            po.ovarrf(
+            po.ovarre(
                 self.outfile,
                 "Blanket direct capital cost (M$)",
                 "(blkcst)",
                 self.data.costs.blkcst,
             )
             if self.data.ife.ife != 1:
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Divertor direct capital cost (M$)",
                     "(divcst)",
                     self.data.costs.divcst,
                 )
                 if self.data.physics.itart == 1:
-                    po.ovarrf(
+                    po.ovarre(
                         self.outfile,
                         "Centrepost direct capital cost (M$)",
                         "(cpstcst)",
                         self.data.costs.cpstcst,
                     )
 
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Plasma heating/CD system cap cost (M$)",
                     "",
@@ -148,14 +149,14 @@ class Costs(Model):
                     * self.data.costs.fcdfuel
                     / (1.0e0 - self.data.costs.fcdfuel),
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Fraction of CD cost --> fuel cost",
                     "(fcdfuel)",
                     self.data.costs.fcdfuel,
                 )
             else:
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "IFE driver system direct cap cost (M$)",
                     "",
@@ -163,7 +164,7 @@ class Costs(Model):
                     * self.data.costs.fcdfuel
                     / (1.0e0 - self.data.costs.fcdfuel),
                 )
-                po.ovarrf(
+                po.ovarre(
                     self.outfile,
                     "Fraction of driver cost --> fuel cost",
                     "(fcdfuel)",
@@ -177,7 +178,7 @@ class Costs(Model):
             "(fkind)",
             self.data.costs.fkind,
         )
-        po.ovarin(
+        po.ovarre(
             self.outfile, "Level of Safety Assurance", "(lsa)", self.data.costs.lsa
         )
         po.oblnkl(self.outfile)
@@ -1141,7 +1142,7 @@ class Costs(Model):
         The first wall cost is scaled linearly with surface area from TFCX.
         If ifueltyp = 1, the first wall cost is treated as a fuel cost,
         rather than as a capital cost.
-        If ifueltyp = 2, inital first wall is included as a capital cost,
+        If ifueltyp = 2, initial first wall is included as a capital cost,
         and the replacement first wall cost is treated as a fuel costs.
         """
         cmlsa = [0.5000e0, 0.7500e0, 0.8750e0, 1.0000e0]
@@ -1754,7 +1755,8 @@ class Costs(Model):
                     * constants.DEN_COPPER
                 )
             else:
-                # MDK I don't know if this is ccorrect as we never use the resistive model
+                # MDK I don't know if this is ccorrect as we never use the
+                # resistive model
                 costpfcu = (
                     self.data.costs.uccu
                     * self.data.pf_coil.a_cs_cable_space
@@ -1896,7 +1898,9 @@ class Costs(Model):
 
                 #  Account 223.3 : Neutral Beam
 
-                # self.data.costs.c2233 = 1.0e-6 * self.data.costs.ucnbi * (1.0e6*p_hcd_beam_injected_total_mw)**exprf
+                # self.data.costs.c2233 =
+                # 1.0e-6 * self.data.costs.ucnbi
+                # * (1.0e6*p_hcd_beam_injected_total_mw)**exprf
                 # #327
 
                 self.data.costs.c2233 = (
@@ -2213,8 +2217,8 @@ class Costs(Model):
 
         #  Pumps and piping system
         #  N.B. with blktmodel > 0, the blanket is assumed to be helium-cooled,
-        #  but the shield etc. is water-cooled (i_blkt_coolant_type=2). Therefore, a slight
-        #  inconsistency exists here...
+        #  but the shield etc. is water-cooled (i_blkt_coolant_type=2).
+        # Therefore, a slight inconsistency exists here...
         self.data.costs.cpp = (
             1.0e-6
             * self.data.costs.uchts[self.data.fwbs.i_blkt_coolant_type - 1]
@@ -2334,7 +2338,8 @@ class Costs(Model):
         """
         if self.data.ife.ife != 1:
             #  Previous calculation, using molflow_plasma_fuelling_required in Amps:
-            #  1.3 should have been self.data.physics.m_fuel_amu*umass/electron_charge*1000*s/day = 2.2
+            #  1.3 should have been
+            # self.data.physics.m_fuel_amu*umass/electron_charge*1000*s/day = 2.2
             # wtgpd = burnup * molflow_plasma_fuelling_required * 1.3e0
 
             #  New calculation: 2 nuclei * reactions/sec * kg/nucleus * g/kg * sec/day
@@ -2648,8 +2653,8 @@ class Costs(Model):
                 #  of the cost of the piping within the block, etc.
                 #
                 #  shcss is the specific heat capacity of stainless steel (J/kg/K)
-                #  self.data.pulse.dtstor is the maximum allowable temperature change in the
-                #  stainless steel block (input)
+                #  self.data.pulse.dtstor is the maximum allowable temperature change in
+                # the stainless steel block (input)
 
                 shcss = 520.0e0
                 self.data.costs.c2253 = (
@@ -2863,7 +2868,9 @@ class Costs(Model):
         if self.data.heat_transport.p_plant_electric_net_mw < 0:
             sqrt_p_plant_electric_net_mw_1200 = 0.0
             logger.warning(
-                "p_plant_electric_net_mw has gone negative! Clamping it to 0 for the calculation of annoam and annwst (cost of maintenance and cost of waste)."
+                "p_plant_electric_net_mw has gone negative! "
+                "Clamping it to 0 for the calculation of annoam and annwst "
+                "(cost of maintenance and cost of waste)."
             )
         else:
             sqrt_p_plant_electric_net_mw_1200 = np.sqrt(
@@ -2932,8 +2939,9 @@ class Costs(Model):
         #  this purpose at the start of the plant life.
         #  Final factor takes into account inflation over the plant lifetime
         #  (suggested by Tim Hender 07/03/96)
-        #  Difference (self.data.costs.dintrt) between borrowing and saving interest rates is
-        #  included, along with the possibility of completing the fund self.data.costs.dtlife
+        #  Difference (self.data.costs.dintrt) between borrowing and
+        #  saving interest rates is included,
+        #  along with the possibility of completing the fund self.data.costs.dtlife
         #  years before the end of the plant's lifetime
 
         anndecom = (
@@ -2981,7 +2989,8 @@ class Costs(Model):
             self.data.fwbs.life_blkt = (
                 self.data.fwbs.life_blkt_fpy * self.data.costs.f_t_plant_available
             )
-            # Current drive system lifetime (assumed equal to first wall and blanket lifetime)
+            # Current drive system lifetime
+            # (assumed equal to first wall and blanket lifetime)
             self.data.costs.cdrlife_cal = self.data.fwbs.life_blkt
         else:
             self.data.fwbs.life_blkt = self.data.fwbs.life_blkt_fpy

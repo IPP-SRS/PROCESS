@@ -13,6 +13,20 @@ from enum import IntEnum
 import numpy as np
 
 
+class CurrentProfileIndexModel(IntEnum):
+    """Enum for current profile index models."""
+
+    USER_INPUT = 0
+    WESSON = 1
+
+
+class PlasmaIgnitionModel(IntEnum):
+    """Enum for plasma ignition models."""
+
+    NON_IGNITED = 0
+    IGNITED = 1
+
+
 class DivertorNumberModels(IntEnum):
     """Enum for divertor number models. `i_single_null` is the index for this enum."""
 
@@ -602,8 +616,8 @@ class PhysicsData:
     )
     """Array of plasma electron density upper limits values (nₑ,max) [/m³]"""
 
-    nd_plasma_alphas_vol_avg: float = 0.0
-    """Plasma volume averaged thermal alpha density (⟨n_α⟩) [/m³]"""  # noqa: RUF001
+    nd_plasma_alphas_thermal_vol_avg: float = 0.0
+    """Plasma volume averaged thermal alpha density (⟨n_αₜₕ⟩) [/m³]"""
 
     nd_beam_ions: float = 0.0
     """Hot beam ion density, variable (⟨n_beam⟩) [/m³]"""
@@ -996,7 +1010,7 @@ class PhysicsData:
     j_plasma_bootstrap_sauter_profile: list[float] = field(default_factory=list)
     """Profile of bootstrap current density in plasma using Sauter et al scaling [A/m²]"""
 
-    n_plasma_profile_elements: int = 501
+    n_plasma_profile_elements: int = 201
     """Number of elements in plasma profile"""
 
     pres_plasma_thermal_vol_avg: float = None
@@ -1251,8 +1265,8 @@ class PhysicsData:
     rad_fraction_total: float = 0.0
     """Radiation fraction total = SoL + LCFS radiation / total power deposited in plasma"""
 
-    f_nd_alpha_electron: float = 0.1
-    """thermal alpha density/electron density (`iteration variable 109`)"""
+    f_nd_alpha_thermal_electron: float = 0.1
+    """Thermal alpha density/electron density (⟨n_αₜₕ⟩/⟨nₑ⟩)"""
 
     f_nd_protium_electrons: float = 0.0
     """Seeded f_nd_protium_electrons density / electron density."""

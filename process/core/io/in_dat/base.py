@@ -172,32 +172,21 @@ def find_line_type(line):
     # Split variable name from line
     name = line.split("=")[0].strip("")
 
-    # If the line is just the title for a section
+    line_type = "Parameter"
     if is_title(line):
-        return "Title"
+        line_type = "Title"
+    elif is_comment(line):
+        line_type = "Comment"
+    elif is_constraint_equation(name):
+        line_type = "Constraint Equation"
+    elif is_iteration_variable(name):
+        line_type = "Iteration Variable"
+    elif is_bound(name):
+        line_type = "Bound"
+    elif is_array(name):
+        line_type = "Array"
 
-    # If the line is a commented line
-    if is_comment(line):
-        return "Comment"
-
-    # Else if the line contains a constraint equation
-    if is_constraint_equation(name):
-        return "Constraint Equation"
-
-    # Else if the line contains an iteration variable
-    if is_iteration_variable(name):
-        return "Iteration Variable"
-
-    # Else if the line contains a bound statement
-    if is_bound(name):
-        return "Bound"
-
-    # Else all other arrays
-    if is_array(name):
-        return "Array"
-
-    # Else the line contains an regular parameter
-    return "Parameter"
+    return line_type
 
 
 def write_title(title, out_file):
@@ -228,14 +217,13 @@ def get_constraint_equations(data):
 
     Parameters
     ----------
-    dict:
-        data: Data dictionary for the IN.DAT information
-    data :
+    data:
+        Data dictionary for the IN.DAT information
 
 
     Returns
     -------
-    dict
+    :
         dict of the constraint numbers and their comments
     """
     constraints = {}
@@ -249,10 +237,12 @@ def get_constraint_equations(data):
 
         if constraint is None:
             raise ProcessValidationError(
-                f"Constraint equation {constraint_number} requested but has not been registered"
+                f"Constraint equation {constraint_number} requested "
+                "but has not been registered"
             )
 
-        # TODO: we should store a short description of each constraint that we can use here.
+        # TODO: we should store a short description of each constraint
+        # that we can use here.
         # Currently, no such information exists.
         constraints[constraint_number] = ""
 
@@ -789,61 +779,50 @@ def parameter_type(name, value):
     # Find parameter type from PROCESS dictionary
     param_type = dicts["DICT_VAR_TYPE"][name]
 
-    # Check if parameter is a list
     if isinstance(value, list):
-        if value[-1] == "":
-            value = value[:-1]
-
-        # Real array parameter
         if "real_array" in param_type:
             return [
-                item if item is None else float(fortran_float_to_py(item))
+                item
+                if item is None
+                else _convert_parameter_python("real_variable", item)
                 for item in value
             ]
-            # Convert list to floats, but not if the value is None
 
-        # Integer array parameter
         if "int_array" in param_type:
-            return [item if item is None else int(item) for item in value]
-            # Convert list to ints, but not if the value is None
+            return [
+                item if item is None else _convert_parameter_python("int_variable", item)
+                for item in value
+            ]
+    elif isinstance(value, str):
+        return _convert_parameter_python(param_type, value)
 
-        # otherwise, return value
-        return value
+    return value
 
-    # Check if parameter is a string
-    if isinstance(value, str):
-        # If a real variable just convert to float
-        if "real_variable" in param_type:
-            # Prepare so float conversion succeeds
-            value = value.lower()
-            value = value.replace("d", "e")
-            return float(value)
 
-        # If a real array split and make a float list
-        if "real_array" in param_type:
-            # Prepare so float conversion succeeds
-            value = value.lower()
-            value = value.replace("d", "e")
-            value = value.split(",")
-            if value[-1] == "":
-                value = value[:-1]
-            return [float(item) for item in value]
+def _convert_parameter_python(param_type, value):
+    """Converts an IN.DAT parameter into its Python representation."""
+    # If a real variable just convert to float
+    if "real_variable" in param_type:
+        # Prepare so float conversion succeeds
+        return float(fortran_float_to_py(value))
 
-        # If an integer variable convert to integer
-        if "int_variable" in param_type:
-            return int(value)
+    # If a real array split and make a float list
+    if "real_array" in param_type:
+        # Prepare so float conversion succeeds
+        return [
+            float(fortran_float_to_py(item))
+            for item in filter(None, value.lower().split(","))
+        ]
 
-        # If an integer array split and make an integer list
-        if "int_array" in param_type:
-            value = value.split(",")
-            if value[-1] == "":
-                value = value[:-1]
-            return [int(item) for item in value]
+    # If an integer variable convert to integer
+    if "int_variable" in param_type:
+        return int(value)
 
-        # If type unknown return original value
-        return value
+    # If an integer array split and make an integer list
+    if "int_array" in param_type:
+        return [int(item) for item in filter(None, value.split(","))]
 
-    # If type is other return original value
+    # If type unknown return original value
     return value
 
 
@@ -880,7 +859,8 @@ def variable_constraint_type_check(item_number, var_type):
 
             # rounded float number with warning
             print(
-                f"Value {item_number} for {var_type} not an integer. Value rounded to {int(item_number)}."
+                f"Value {item_number} for {var_type} not an integer. "
+                f"Value rounded to {int(item_number)}."
                 " Check!"
             )
             return int(item_number)
@@ -899,7 +879,8 @@ def variable_constraint_type_check(item_number, var_type):
 
         # If not an integer warn of rounding and return rounded integer
         print(
-            f"Value {item_number} for {var_type} not an integer. Value rounded to {int(item_number)}. Check!"
+            f"Value {item_number} for {var_type} not an integer. "
+            f"Value rounded to {int(item_number)}. Check!"
         )
         return int(item_number)
 
@@ -963,7 +944,8 @@ def variable_bound_check(bound_number, bound_type):
             return int(bound_number), bound_type
         bound_number = int(bound_number)
         print(
-            f"Bound number {bound_number} not an integer. Value rounded to {int(bound_number)}"
+            f"Bound number {bound_number} not an integer. "
+            f"Value rounded to {int(bound_number)}"
         )
         return bound_number, bound_type
 
@@ -993,7 +975,8 @@ class INVariable:
         self.comment = comment
 
     def __eq__(self, value):
-        # intentionally missing .comment, this is not necessary for the variables to be equal
+        # intentionally missing .comment,
+        # this is not necessary for the variables to be equal
         return (
             self.name == value.name
             and self.value == value.value
@@ -1005,7 +988,8 @@ class INVariable:
 
     def __repr__(self):
         return (
-            f"{type(self).__name__}(name={self.name!r}, value={self.value!r}, v_type={self.v_type!r}, "
+            f"{type(self).__name__}(name={self.name!r}, value={self.value!r}, "
+            f"v_type={self.v_type!r}, "
             f"comment={self.comment!r})"
         )
 
@@ -1120,7 +1104,7 @@ class InDat:
 
         # Arrays
         elif line_type == "Array":
-            # Create geneneric array variable class using INVariable class,
+            # Create generic array variable class using INVariable class,
             # if it does not yet exist
             line_commentless = line.split("*")[0]
             array_name = line_commentless.split("(")[0]
@@ -1424,7 +1408,7 @@ class InDat:
         if len(empty_array) == 0:
             empty_array = [None] * array_len
 
-        # If the Pyhton list is an empty list, make a list of Nones of
+        # If the Python list is an empty list, make a list of Nones of
         # matching length to the Fortran array
         if list_len == 0:
             self.data[name].value = [None] * array_len

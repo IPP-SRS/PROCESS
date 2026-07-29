@@ -4,6 +4,8 @@ from types import DynamicClassAttribute
 
 import numpy as np
 
+from process.core.solver.iteration_variables import ITERATION_VARIABLES
+
 
 class PROCESSRunMode(IntEnum):
     """Enumeration of the available PROCESS run modes, which determine the behaviour
@@ -100,14 +102,12 @@ class FiguresOfMerit(IntEnum):
         return self._description_
 
 
-IPNVARS = 177
+IPNVARS = max(ITERATION_VARIABLES.keys())
 """total number of variables available for iteration"""
 
-IPEQNS = 92
-"""number of constraint equations available"""
-
-IPNFOMS = 19
-"""number of available figures of merit"""
+# Set to a really large number so that it should never need to be changed
+IPEQNS = 500
+"""Maximum number of constraint equations available"""
 
 
 @dataclass(slots=True)
@@ -471,7 +471,7 @@ class NumericsData:
     * (106) NOT USED
     * (107) NOT USED
     * (108) breeder_f: Volume of Li4SiO4 / (Volume of Be12Ti + Li4SiO4)
-    * (109) f_nd_alpha_electron: thermal alpha density / electron density
+    * (109) f_nd_alpha_thermal_electron: thermal alpha density / electron density
     * (110) NOT USED
     * (111) NOT USED
     * (112) NOT USED

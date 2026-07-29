@@ -12,6 +12,7 @@ import pytest
 import process.models.tfcoil.base as tfcoil_module
 from process.data_structure.build_variables import TFCSRadialConfiguration
 from process.data_structure.pfcoil_variables import PFConductorModel
+from process.data_structure.superconducting_tf_coil_variables import TFWPIntegerTurnType
 
 
 @pytest.fixture
@@ -356,7 +357,8 @@ def test_circumference(a: float, b: float, expected_circumference, tfcoil):
     This unit test uses values from an external blog referenced in the
     routine header
     (https://www.johndcook.com/blog/2013/05/05/ramanujan-circumference-ellipse/)
-    as well as results obtained from baseline 2018.
+    as well as results obtained from baseline 2018 (no longer exists in the
+    PROCESS repository).
 
     Parameters
     ----------
@@ -519,7 +521,8 @@ def test_tf_field_and_force(tffieldandforceparam, tfcoil):
     """
     Automatically generated Regression Unit Test for tf_field_and_force.
 
-    This test was generated using data from tests/regression/scenarios/FNSF/IN.DAT.
+    This test was generated using data from the FNSF IN.DAT
+    (no longer exists in the PROCESS repository).
 
     :param tffieldandforceparam: the data used to mock and assert in this test.
     :type tffieldandforceparam: tffieldandforceparam
@@ -654,7 +657,8 @@ def test_tf_coil_self_inductance(tfcindparam, monkeypatch, tfcoil):
     """
     Automatically generated Regression Unit Test for tf_coil_self_inductance().
 
-    This test was generated using data from tracking/baseline_2018/baseline_2018_IN.DAT.
+    This test was generated using data from baseline_2018_IN.DAT
+    (no longer exists in the PROCESS repository).
 
     :param tfcindparam: the data used to mock and assert in this test.
     :type tfcindparam: tfcindparam
@@ -729,7 +733,8 @@ def test_generic_tf_coil_area_and_masses(tfcoilareaandmassesparam, monkeypatch, 
     """
     Automatically generated Regression Unit Test for tf_coil_area_and_masses.
 
-    This test was generated using data from tracking/baseline_2018/baseline_2018_IN.DAT.
+    This test was generated using data from baseline_2018_IN.DAT
+    (no longer exists in the PROCESS repository).
 
     :param tfcoilareaandmassesparam: the data used to mock and assert in this test.
     :type tfcoilareaandmassesparam: tfcoilareaandmassesparam
@@ -798,8 +803,6 @@ class StressclParam(NamedTuple):
     i_tf_inside_cs: Any = None
 
     dr_cs_tf_gap: Any = None
-
-    z_tf_inside_half: Any = None
 
     r_tf_inboard_in: Any = None
 
@@ -909,8 +912,6 @@ class StressclParam(NamedTuple):
 
     f_a_cs_turn_steel: Any = None
 
-    f_z_cs_tf_internal: Any = None
-
     j_cs_flat_top_end: Any = None
 
     j_cs_pulse_start: Any = None
@@ -949,6 +950,8 @@ class StressclParam(NamedTuple):
 
     vforce_inboard_tot: Any = None
 
+    a_cs_poloidal: Any = None
+
     iprint: Any = None
 
     outfile: Any = None
@@ -978,7 +981,7 @@ class StressclParam(NamedTuple):
             r_tf_inboard_mid=3.5979411851091103,
             dr_bore=2.3322000000000003,
             dr_cs=0.55242000000000002,
-            z_tf_inside_half=9.0730900215620327,
+            a_cs_poloidal=9.021881501,
             r_tf_inboard_in=2.9939411851091102,
             casestr=0,
             n_tf_coil_turns=200,
@@ -1018,7 +1021,7 @@ class StressclParam(NamedTuple):
             n_tf_coils=16,
             i_tf_stress_model=1,
             sig_tf_wp_max=580000000,
-            i_tf_turns_integer=1,
+            i_tf_turns_integer=TFWPIntegerTurnType.INTEGER,
             dr_tf_plasma_case=0.060000000000000012,
             a_tf_wp_conductor=0.1653572639592335,
             a_tf_wp_extra_void=0.07759938309736393,
@@ -1033,7 +1036,6 @@ class StressclParam(NamedTuple):
             n_tf_wp_stress_layers=5,
             i_pf_conductor=PFConductorModel.SUPERCONDUCTING,
             f_a_cs_turn_steel=0.57874999999999999,
-            f_z_cs_tf_internal=0.90000000000000002,
             j_cs_flat_top_end=20726000,
             j_cs_pulse_start=0,
             n_pf_coils_in_group=np.array((1, 1, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0)),
@@ -1095,7 +1097,7 @@ class StressclParam(NamedTuple):
             r_tf_inboard_mid=3.5979411851091103,
             dr_bore=2.3322000000000003,
             dr_cs=0.55242000000000002,
-            z_tf_inside_half=9.0730900215620327,
+            a_cs_poloidal=9.021881501,
             r_tf_inboard_in=2.9939411851091102,
             casestr=0.00094360452596334093,
             n_tf_coil_turns=200,
@@ -1135,7 +1137,7 @@ class StressclParam(NamedTuple):
             n_tf_coils=16,
             i_tf_stress_model=1,
             sig_tf_wp_max=580000000,
-            i_tf_turns_integer=1,
+            i_tf_turns_integer=TFWPIntegerTurnType.INTEGER,
             dr_tf_plasma_case=0.060000000000000012,
             a_tf_wp_conductor=0.1653572639592335,
             a_tf_wp_extra_void=0.07759938309736393,
@@ -1150,7 +1152,6 @@ class StressclParam(NamedTuple):
             n_tf_wp_stress_layers=5,
             i_pf_conductor=PFConductorModel.SUPERCONDUCTING,
             f_a_cs_turn_steel=0.57874999999999999,
-            f_z_cs_tf_internal=0.90000000000000002,
             j_cs_flat_top_end=20726000,
             j_cs_pulse_start=19311657.760000002,
             n_pf_coils_in_group=np.array((1, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0)),
@@ -1209,7 +1210,8 @@ def test_stresscl(stressclparam, monkeypatch, tfcoil):
     """
     Automatically generated Regression Unit Test for stresscl.
 
-    This test was generated using data from tracking/baseline_2018/baseline_2018_IN.DAT.
+    This test was generated using data from baseline_2018_IN.DAT
+    (no longer exists in the PROCESS repository).
 
     :param stressclparam: the data used to mock and assert in this test.
     :type stressclparam: stressclparam
@@ -1254,73 +1256,72 @@ def test_stresscl(stressclparam, monkeypatch, tfcoil):
         insstrain,
         _,
     ) = tfcoil.stresscl(
-        stressclparam.n_tf_layer,
-        stressclparam.n_radial_array,
-        stressclparam.n_tf_wp_stress_layers,
-        stressclparam.i_tf_bucking,
-        stressclparam.r_tf_inboard_in,
-        stressclparam.dr_bore,
-        stressclparam.z_tf_inside_half,
-        stressclparam.f_z_cs_tf_internal,
-        stressclparam.dr_cs,
-        stressclparam.i_tf_inside_cs,
-        stressclparam.dr_tf_inboard,
-        stressclparam.dr_cs_tf_gap,
-        stressclparam.i_pf_conductor,
-        stressclparam.j_cs_flat_top_end,
-        stressclparam.j_cs_pulse_start,
-        stressclparam.c_pf_coil_turn_peak_input,
-        stressclparam.n_pf_coils_in_group,
-        70 / 22,
-        3e-3,
-        stressclparam.f_a_cs_turn_steel,
-        stressclparam.eyoung_steel,
-        stressclparam.poisson_steel,
-        stressclparam.eyoung_cond_axial,
-        stressclparam.poisson_cond_axial,
-        stressclparam.eyoung_cond_trans,
-        stressclparam.poisson_cond_trans,
-        stressclparam.eyoung_ins,
-        stressclparam.poisson_ins,
-        stressclparam.dx_tf_turn_insulation,
-        stressclparam.eyoung_copper,
-        stressclparam.poisson_copper,
-        stressclparam.i_tf_sup,
-        stressclparam.eyoung_res_tf_buck,
-        stressclparam.r_tf_wp_inboard_inner,
-        stressclparam.tan_theta_coil,
-        stressclparam.rad_tf_coil_inboard_toroidal_half,
-        stressclparam.r_tf_wp_inboard_outer,
-        stressclparam.a_tf_coil_inboard_steel,
-        stressclparam.a_tf_plasma_case,
-        stressclparam.a_tf_coil_nose_case,
-        stressclparam.dx_tf_wp_insertion_gap,
-        stressclparam.dx_tf_wp_insulation,
-        stressclparam.n_tf_coil_turns,
-        stressclparam.i_tf_turns_integer,
-        stressclparam.dx_tf_turn_cable_space_average,
-        stressclparam.dr_tf_turn_cable_space,
-        stressclparam.dia_tf_turn_coolant_channel,
-        stressclparam.f_a_tf_turn_cable_copper,
-        stressclparam.dx_tf_turn_steel,
-        stressclparam.dx_tf_side_case_average,
-        stressclparam.dx_tf_wp_toroidal_average,
-        stressclparam.a_tf_coil_inboard_insulation,
-        stressclparam.a_tf_wp_steel,
-        stressclparam.a_tf_wp_conductor,
-        stressclparam.a_tf_wp_with_insulation,
-        stressclparam.eyoung_al,
-        stressclparam.poisson_al,
-        stressclparam.fcoolcp,
-        stressclparam.n_tf_graded_layers,
-        stressclparam.c_tf_total,
-        stressclparam.dr_tf_plasma_case,
-        stressclparam.i_tf_stress_model,
-        stressclparam.vforce_inboard_tot,
-        stressclparam.i_tf_tresca,
-        stressclparam.a_tf_coil_inboard_case,
-        stressclparam.vforce,
-        stressclparam.a_tf_turn_steel,
+        n_tf_layer=stressclparam.n_tf_layer,
+        n_radial_array=stressclparam.n_radial_array,
+        n_tf_wp_stress_layers=stressclparam.n_tf_wp_stress_layers,
+        i_tf_bucking=stressclparam.i_tf_bucking,
+        r_tf_inboard_in=stressclparam.r_tf_inboard_in,
+        dr_bore=stressclparam.dr_bore,
+        dr_cs=stressclparam.dr_cs,
+        i_tf_inside_cs=stressclparam.i_tf_inside_cs,
+        dr_tf_inboard=stressclparam.dr_tf_inboard,
+        dr_cs_tf_gap=stressclparam.dr_cs_tf_gap,
+        i_pf_conductor=stressclparam.i_pf_conductor,
+        j_cs_flat_top_end=stressclparam.j_cs_flat_top_end,
+        j_cs_pulse_start=stressclparam.j_cs_pulse_start,
+        c_pf_coil_turn_peak_input=stressclparam.c_pf_coil_turn_peak_input,
+        n_pf_coils_in_group=stressclparam.n_pf_coils_in_group,
+        f_dr_dz_cs_turn=70 / 22,
+        radius_cs_turn_corners=3e-3,
+        f_a_cs_turn_steel=stressclparam.f_a_cs_turn_steel,
+        eyoung_steel=stressclparam.eyoung_steel,
+        poisson_steel=stressclparam.poisson_steel,
+        eyoung_cond_axial=stressclparam.eyoung_cond_axial,
+        poisson_cond_axial=stressclparam.poisson_cond_axial,
+        eyoung_cond_trans=stressclparam.eyoung_cond_trans,
+        poisson_cond_trans=stressclparam.poisson_cond_trans,
+        eyoung_ins=stressclparam.eyoung_ins,
+        poisson_ins=stressclparam.poisson_ins,
+        dx_tf_turn_insulation=stressclparam.dx_tf_turn_insulation,
+        eyoung_copper=stressclparam.eyoung_copper,
+        poisson_copper=stressclparam.poisson_copper,
+        i_tf_sup=stressclparam.i_tf_sup,
+        eyoung_res_tf_buck=stressclparam.eyoung_res_tf_buck,
+        r_tf_wp_inboard_inner=stressclparam.r_tf_wp_inboard_inner,
+        tan_theta_coil=stressclparam.tan_theta_coil,
+        rad_tf_coil_inboard_toroidal_half=stressclparam.rad_tf_coil_inboard_toroidal_half,
+        r_tf_wp_inboard_outer=stressclparam.r_tf_wp_inboard_outer,
+        a_tf_coil_inboard_steel=stressclparam.a_tf_coil_inboard_steel,
+        a_tf_plasma_case=stressclparam.a_tf_plasma_case,
+        a_tf_coil_nose_case=stressclparam.a_tf_coil_nose_case,
+        dx_tf_wp_insertion_gap=stressclparam.dx_tf_wp_insertion_gap,
+        dx_tf_wp_insulation=stressclparam.dx_tf_wp_insulation,
+        n_tf_coil_turns=stressclparam.n_tf_coil_turns,
+        i_tf_turns_integer=stressclparam.i_tf_turns_integer,
+        dx_tf_turn_cable_space_average=stressclparam.dx_tf_turn_cable_space_average,
+        dr_tf_turn_cable_space=stressclparam.dr_tf_turn_cable_space,
+        dia_tf_turn_coolant_channel=stressclparam.dia_tf_turn_coolant_channel,
+        f_a_tf_turn_cable_copper=stressclparam.f_a_tf_turn_cable_copper,
+        dx_tf_turn_steel=stressclparam.dx_tf_turn_steel,
+        dx_tf_side_case_average=stressclparam.dx_tf_side_case_average,
+        dx_tf_wp_toroidal_average=stressclparam.dx_tf_wp_toroidal_average,
+        a_tf_coil_inboard_insulation=stressclparam.a_tf_coil_inboard_insulation,
+        a_tf_wp_steel=stressclparam.a_tf_wp_steel,
+        a_tf_wp_conductor=stressclparam.a_tf_wp_conductor,
+        a_tf_wp_with_insulation=stressclparam.a_tf_wp_with_insulation,
+        eyoung_al=stressclparam.eyoung_al,
+        poisson_al=stressclparam.poisson_al,
+        fcoolcp=stressclparam.fcoolcp,
+        n_tf_graded_layers=stressclparam.n_tf_graded_layers,
+        c_tf_total=stressclparam.c_tf_total,
+        dr_tf_plasma_case=stressclparam.dr_tf_plasma_case,
+        i_tf_stress_model=stressclparam.i_tf_stress_model,
+        vforce_inboard_tot=stressclparam.vforce_inboard_tot,
+        i_tf_tresca=stressclparam.i_tf_tresca,
+        a_tf_coil_inboard_case=stressclparam.a_tf_coil_inboard_case,
+        vforce=stressclparam.vforce,
+        a_tf_turn_steel=stressclparam.a_tf_turn_steel,
+        a_cs_poloidal=stressclparam.a_cs_poloidal,
     )
 
     assert casestr == pytest.approx(stressclparam.expected_casestr, rel=0.01)
@@ -1425,7 +1426,8 @@ def test_plane_stress(planestressparam, skip_if_incompatible_system, request):
     """
     Automatically generated Regression Unit Test for plane_stress.
 
-    This test was generated using data from tracking/baseline_2018/baseline_2018_IN.DAT.
+    This test was generated using data from baseline_2018_IN.DAT
+    (no longer exists in the PROCESS repository).
 
     :param planestressparam: the data used to mock and assert in this test.
     :type planestressparam: planestressparam
@@ -1583,7 +1585,8 @@ def test_extended_plane_strain(extendedplanestrainparam):
     """
     Automatically generated Regression Unit Test for extended_plane_strain.
 
-    This test was generated using data from tests/regression/scenarios/FNSF/IN.DAT.
+    This test was generated using data from the FNSF IN.DAT
+    (no longer exists in the PROCESS repository).
 
     :param extendedplanestrainparam: the data used to mock and assert in this test.
     :type extendedplanestrainparam: extendedplanestrainparam
@@ -1691,7 +1694,8 @@ def test_eyoung_parallel(eyoungparallelparam, monkeypatch):
     """
     Automatically generated Regression Unit Test for eyoung_parallel.
 
-    This test was generated using data from tracking/baseline_2018/baseline_2018_IN.DAT.
+    This test was generated using data from baseline_2018_IN.DAT
+    (no longer exists in the PROCESS repository).
 
     :param eyoungparallelparam: the data used to mock and assert in this test.
     :type eyoungparallelparam: eyoungparallelparam
@@ -1803,7 +1807,8 @@ def test_eyoung_t_nested_squares(eyoungtnestedsquaresparam, monkeypatch):
     """
     Automatically generated Regression Unit Test for eyoung_t_nested_squares.
 
-    This test was generated using data from tracking/baseline_2018/baseline_2018_IN.DAT.
+    This test was generated using data from baseline_2018_IN.DAT
+    (no longer exists in the PROCESS repository).
 
     :param eyoungtnestedsquaresparam: the data used to mock and assert in this test.
     :type eyoungtnestedsquaresparam: eyoungtnestedsquaresparam
@@ -1870,7 +1875,8 @@ def test_eyoung_series(eyoungseriesparam, monkeypatch):
     """
     Automatically generated Regression Unit Test for eyoung_series.
 
-    This test was generated using data from tracking/baseline_2018/baseline_2018_IN.DAT.
+    This test was generated using data from baseline_2018_IN.DAT
+    (no longer exists in the PROCESS repository).
 
     :param eyoungseriesparam: the data used to mock and assert in this test.
     :type eyoungseriesparam: eyoungseriesparam
@@ -1925,7 +1931,8 @@ def test_eyoung_parallel_array(eyoungparallelarrayparam, monkeypatch):
     """
     Automatically generated Regression Unit Test for eyoung_parallel_array.
 
-    This test was generated using data from tracking/baseline_2018/baseline_2018_IN.DAT.
+    This test was generated using data from baseline_2018_IN.DAT
+    (no longer exists in the PROCESS repository).
 
     :param eyoungparallelarrayparam: the data used to mock and assert in this test.
     :type eyoungparallelarrayparam: eyoungparallelarrayparam
@@ -1948,21 +1955,6 @@ def test_eyoung_parallel_array(eyoungparallelarrayparam, monkeypatch):
     assert poisson_j_perp_out == pytest.approx(
         eyoungparallelarrayparam.expected_poisson_j_perp_out
     )
-
-
-@pytest.mark.parametrize(
-    ("sx", "sy", "sz", "expected"),
-    [
-        (0, -3.2e8, 2.4e8, 486621002.42385757),
-        (-2.8e8, 0, 2.4e8, 450777106.7833858),
-    ],
-)
-def test_sigvm(sx, sy, sz, expected):
-    # could not find an example of a use in PROCESS where
-    # tx, ty, or tz were anything other than 0
-    ret = tfcoil_module.sigvm(sx, sy, sz, 0, 0, 0)
-
-    assert ret == pytest.approx(expected)
 
 
 @pytest.mark.parametrize(

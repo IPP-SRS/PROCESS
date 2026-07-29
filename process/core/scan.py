@@ -272,7 +272,7 @@ class Scan:
                 constants.NOUT, "PROCESS has performed a VMCON (optimisation) run."
             )
         if ifail != 1:
-            process_output.ovarin(constants.NOUT, "Error flag", "(ifail)", ifail)
+            process_output.ovarre(constants.NOUT, "Error flag", "(ifail)", ifail)
             process_output.oheadr(
                 constants.IOTTY, "PROCESS COULD NOT FIND A FEASIBLE SOLUTION"
             )
@@ -302,7 +302,7 @@ class Scan:
                     constants.IOTTY, "PROCESS found a consistent solution"
                 )
             process_output.oblnkl(constants.NOUT)
-            process_output.ovarin(constants.NOUT, "Error flag", "(ifail)", ifail)
+            process_output.ovarre(constants.NOUT, "Error flag", "(ifail)", ifail)
 
             if self.data.numerics.sqsumsq >= 1.0e-2:
                 process_output.oblnkl(constants.NOUT)
@@ -337,19 +337,19 @@ class Scan:
                     f"High final constraint residues. {self.data.numerics.sqsumsq=}"
                 )
 
-        process_output.ovarin(
+        process_output.ovarre(
             constants.NOUT,
             "Number of iteration variables",
             "(nvar)",
             self.data.numerics.nvar,
         )
-        process_output.ovarin(
+        process_output.ovarre(
             constants.NOUT,
             "Number of constraints (total)",
             "(neqns+nineqns)",
             self.data.numerics.neqns + self.data.numerics.nineqns,
         )
-        process_output.ovarin(
+        process_output.ovarre(
             constants.NOUT,
             "Optimisation switch",
             "(ioptimz)",
@@ -361,7 +361,7 @@ class Scan:
         )
         # Objective function output: none for fsolve
         if self.solver != "fsolve":
-            process_output.ovarin(
+            process_output.ovarre(
                 constants.NOUT,
                 "Figure of merit switch",
                 "(minmax)",
@@ -372,7 +372,7 @@ class Scan:
 
             self.data.numerics.objf_name = objf_name
 
-            process_output.ovarst(
+            process_output.ovarre(
                 constants.NOUT,
                 "Objective function name",
                 "(objf_name)",
@@ -401,7 +401,7 @@ class Scan:
                 self.data.globals.convergence_parameter,
                 "OP ",
             )
-            process_output.ovarin(
+            process_output.ovarre(
                 constants.NOUT,
                 "Number of optimising solver iterations",
                 "(nviter)",
@@ -429,7 +429,8 @@ class Scan:
 
             process_output.write(
                 constants.NOUT,
-                f"{string1} the optimisation parameters to {string2} the objective function: {objf_name}\n",
+                f"{string1} the optimisation parameters to {string2} "
+                f"the objective function: {objf_name}\n",
             )
 
         written_warning = False
@@ -459,7 +460,8 @@ class Scan:
                         constants.NOUT,
                         (
                             "Certain operating limits have been reached,"
-                            "\n as shown by the following optimisation parameters that are"
+                            "\n as shown by the following optimisation parameters"
+                            " that are"
                             "\n at or near to the edge of their prescribed range :\n"
                         ),
                     )
@@ -614,13 +616,14 @@ class Scan:
             # Inequalities not necessarily satisfied when evaluating
             process_output.osubhd(
                 constants.NOUT,
-                "Negative inequality constraint (normalised) residuals indicate a constraint is satisfied.",
+                "Negative inequality constraint (normalised) residuals "
+                "indicate a constraint is satisfied.",
             )
             if self.solver == "fsolve":
                 process_output.osubhd(
                     constants.NOUT,
-                    "This MFile was produced via an evaluation, not an optimisation, and so the constraints "
-                    "might be violated.",
+                    "This MFile was produced via an evaluation, not an optimisation, "
+                    "and so the constraints might be violated.",
                 )
 
             for i in range(
@@ -724,7 +727,8 @@ class Scan:
             )
             process_output.ocmmnt(
                 constants.NOUT,
-                "The code may be stuck in a minimum in the residual space that is significantly above zero.",
+                "The code may be stuck in a minimum in the residual space that is "
+                "significantly above zero.",
             )
             process_output.oblnkl(constants.NOUT)
             process_output.ocmmnt(
@@ -744,7 +748,8 @@ class Scan:
             )
             process_output.ocmmnt(
                 constants.IOTTY,
-                "The code may be stuck in a minimum in the residual space that is significantly above zero.",
+                "The code may be stuck in a minimum in the residual space that is "
+                "significantly above zero.",
             )
             process_output.oblnkl(constants.NOUT)
             process_output.oblnkl(constants.IOTTY)
@@ -869,9 +874,7 @@ class Scan:
 
         # outvar now contains results
         self.scan_1d_write_plot(self.data.scan)
-        print(
-            " ****************************************** Scan Convergence Summary ****************************************** \n"
-        )
+        print("Scan Convergence Summary \n")
         sweep_values = self.data.scan.sweep[: self.data.scan.isweep]
         nsweep_var_name, _ = self.scan_select(
             self.data.scan.nsweep, self.data.scan.sweep, self.data.scan.isweep
@@ -929,9 +932,7 @@ class Scan:
                 scan_2d_ifail_list[iscan_1][iscan_2] = ifail
                 iscan += 1
 
-        print(
-            " ****************************************** Scan Convergence Summary ****************************************** \n"
-        )
+        print("Scan Convergence Summary\n")
         sweep_1_values = self.data.scan.sweep[: self.data.scan.isweep]
         sweep_2_values = self.data.scan.sweep_2[: self.data.scan.isweep_2]
         nsweep_var_name, _ = self.scan_select(
@@ -962,14 +963,22 @@ class Scan:
                 if scan_2d_ifail_list[iscan_1][iscan_2] == 1:
                     converged_count += 1
                     print(
-                        f"Scan {scan_point:02d}: ({nsweep_var_name} = {sweep_1_values[iscan_1 - 1]}, {nsweep_2_var_name} = {sweep_2_values[iscan_2 - 1]}) "
+                        (
+                            f"Scan {scan_point:02d}: ({nsweep_var_name} = "
+                            f"{sweep_1_values[iscan_1 - 1]}, {nsweep_2_var_name} "
+                            f"= {sweep_2_values[iscan_2 - 1]}) "
+                        )
                         + " " * offsets[iscan_1 - 1][iscan_2 - 1]
                         + "\u001b[32mCONVERGED \u001b[0m"
                     )
                     scan_point += 1
                 else:
                     print(
-                        f"Scan {scan_point:02d}: ({nsweep_var_name} = {sweep_1_values[iscan_1 - 1]}, {nsweep_2_var_name} = {sweep_2_values[iscan_2 - 1]}) "
+                        (
+                            f"Scan {scan_point:02d}: ({nsweep_var_name} = "
+                            f"{sweep_1_values[iscan_1 - 1]}, {nsweep_2_var_name} = "
+                            f"{sweep_2_values[iscan_2 - 1]}) "
+                        )
                         + " " * offsets[iscan_1 - 1][iscan_2 - 1]
                         + "\u001b[31mUNCONVERGED \u001b[0m"
                     )
@@ -981,37 +990,37 @@ class Scan:
 
     @staticmethod
     def scan_2d_init(scan_data: ScanData):
-        process_output.ovarin(
+        process_output.ovarre(
             constants.MFILE,
             "Number of first variable scan points",
             "(isweep)",
             scan_data.isweep,
         )
-        process_output.ovarin(
+        process_output.ovarre(
             constants.MFILE,
             "Number of second variable scan points",
             "(isweep_2)",
             scan_data.isweep_2,
         )
-        process_output.ovarin(
+        process_output.ovarre(
             constants.MFILE,
             "Scanning first variable number",
             "(nsweep)",
             scan_data.nsweep,
         )
-        process_output.ovarin(
+        process_output.ovarre(
             constants.MFILE,
             "Scanning second variable number",
             "(nsweep_2)",
             scan_data.nsweep_2,
         )
-        process_output.ovarin(
+        process_output.ovarre(
             constants.MFILE,
             "Scanning second variable number",
             "(nsweep_2)",
             scan_data.nsweep_2,
         )
-        process_output.ovarin(
+        process_output.ovarre(
             constants.MFILE,
             "Scanning second variable number",
             "(nsweep_2)",
@@ -1029,13 +1038,14 @@ class Scan:
 
         process_output.write(
             constants.NOUT,
-            f"***** Scan point {iscan} of {self.data.scan.isweep} : {self.data.globals.xlabel}"
+            f"***** Scan point {iscan} of {self.data.scan.isweep} : "
+            f"{self.data.globals.xlabel}"
             f", {self.data.globals.vlabel} = {self.data.scan.sweep[iscan - 1]} "
             "*****",
         )
         process_output.ostars(constants.NOUT, 110)
         process_output.oblnkl(constants.MFILE)
-        process_output.ovarin(constants.MFILE, "Scan point number", "(iscan)", iscan)
+        process_output.ovarre(constants.MFILE, "Scan point number", "(iscan)", iscan)
 
         print(
             f"Starting scan point {iscan} of {self.data.scan.isweep} : "
@@ -1061,14 +1071,15 @@ class Scan:
 
         process_output.write(
             constants.NOUT,
-            f"***** 2D Scan point {iscan} of {self.data.scan.isweep * self.data.scan.isweep_2} : "
+            f"***** 2D Scan point {iscan} of "
+            f"{self.data.scan.isweep * self.data.scan.isweep_2} : "
             f"{self.data.globals.vlabel} = {self.data.scan.sweep[iscan_1 - 1]} and"
             f" {self.data.globals.vlabel_2} = {self.data.scan.sweep_2[iscan_r - 1]} "
             "*****",
         )
         process_output.ostars(constants.NOUT, 110)
         process_output.oblnkl(constants.MFILE)
-        process_output.ovarin(constants.MFILE, "Scan point number", "(iscan)", iscan)
+        process_output.ovarre(constants.MFILE, "Scan point number", "(iscan)", iscan)
 
         print(
             f"Starting scan point {iscan}:  {self.data.globals.xlabel}, "
@@ -1082,13 +1093,13 @@ class Scan:
     @staticmethod
     def scan_1d_write_plot(scan_data: ScanData):
         if scan_data.first_call_1d:
-            process_output.ovarin(
+            process_output.ovarre(
                 constants.MFILE,
                 "Number of scan points",
                 "(isweep)",
                 scan_data.isweep,
             )
-            process_output.ovarin(
+            process_output.ovarre(
                 constants.MFILE,
                 "Scanning variable number",
                 "(nsweep)",

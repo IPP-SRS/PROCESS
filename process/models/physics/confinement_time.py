@@ -1,6 +1,7 @@
 """Confinement time model calculations and definitions."""
 
 import logging
+from dataclasses import dataclass
 
 import numpy as np
 from scipy.optimize import root_scalar
@@ -14,10 +15,31 @@ from process.data_structure.physics_variables import (
     ConfinementMode,
     ConfinementRadiationLossModel,
     ConfinementTimeModel,
+    PlasmaIgnitionModel,
 )
 from process.models.physics.plasma_geometry import PlasmaGeom
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(slots=True, frozen=True)
+class ConfinementTimeData:
+    """Dataclass to hold confinement time model calculation parameters."""
+
+    pden_electron_transport_loss_mw: float
+    """Electron transport loss power density in MW."""
+    pden_ion_transport_loss_mw: float
+    """Ion transport loss power density in MW."""
+    t_electron_energy_confinement: float
+    """Electron energy confinement time in seconds."""
+    t_ion_energy_confinement: float
+    """Ion energy confinement time in seconds."""
+    t_plasma_energy_confinement: float
+    """Plasma energy confinement time in seconds."""
+    p_plasma_loss_mw: float
+    """Total plasma loss power in MW."""
+    hstar: float
+    """Non-radiation corrected H factor on energy confinement times"""
 
 
 class PlasmaConfinementTime(Model):
@@ -60,7 +82,7 @@ class PlasmaConfinementTime(Model):
         zeff: float,
         eden_plasma_electrons_thermal_vol_avg: float,
         eden_plasma_ions_thermal_vol_avg: float,
-    ) -> tuple[float, float, float, float, float, float, float]:
+    ) -> ConfinementTimeData:
         """Calculate the confinement times and the transport power loss terms.
 
         Parameters
@@ -118,14 +140,8 @@ class PlasmaConfinementTime(Model):
 
         Returns
         -------
-        type
-            Tuple containing:
-            - pden_electron_transport_loss_mw (float): Electron transport power (MW/m³)
-            - pden_ion_transport_loss_mw (float): Ion transport power (MW/m³)
-            - t_electron_energy_confinement (float): Electron energy confinement time (s)
-            - t_ion_energy_confinement (float): Ion energy confinement time (s)
-            - t_energy_confinement (float): Global energy confinement time (s)
-            - p_plasma_loss_mw (float): Heating power (MW) assumed in calculation
+        ConfinementTimeData
+            Dataclass containing confinement time model calculation parameters
 
         Raises
         ------
@@ -143,7 +159,7 @@ class PlasmaConfinementTime(Model):
         )
 
         # If the device is not ignited, add the injected auxiliary power
-        if i_plasma_ignited == 0:
+        if PlasmaIgnitionModel(i_plasma_ignited) == PlasmaIgnitionModel.NON_IGNITED:
             p_plasma_loss_mw += p_hcd_injected_total_mw
 
         # Include the radiation as a loss term based on radiation model
@@ -923,8 +939,11 @@ class PlasmaConfinementTime(Model):
 
         # Calculate H* non-radiation corrected H factor
         # Note: we will assume the IPB-98y2 scaling.
-        if self.data.physics.i_rad_loss == ConfinementRadiationLossModel.CORE_ONLY:
-            self.data.physics.hstar = (
+        if (
+            ConfinementRadiationLossModel(self.data.physics.i_rad_loss)
+            == ConfinementRadiationLossModel.CORE_ONLY
+        ):
+            hstar = (
                 hfact
                 * (
                     p_plasma_loss_mw
@@ -939,7 +958,7 @@ class PlasmaConfinementTime(Model):
         elif (
             self.data.physics.i_rad_loss == ConfinementRadiationLossModel.FULL_RADIATION
         ):
-            self.data.physics.hstar = (
+            hstar = (
                 hfact
                 * (
                     p_plasma_loss_mw
@@ -951,7 +970,7 @@ class PlasmaConfinementTime(Model):
                 ** 0.31
             )
         elif self.data.physics.i_rad_loss == ConfinementRadiationLossModel.NO_RADIATION:
-            self.data.physics.hstar = hfact
+            hstar = hfact
 
         # Calculation of the transport power loss terms
         # Transport losses in Watts/m3 are 3/2 * n.e.T / tau , with T in eV
@@ -982,13 +1001,14 @@ class PlasmaConfinementTime(Model):
             self.data.physics.e_plasma_beta / 1e6
         ) / p_plasma_loss_mw
 
-        return (
-            pden_electron_transport_loss_mw,
-            pden_ion_transport_loss_mw,
-            t_electron_energy_confinement,
-            t_ion_energy_confinement,
-            t_energy_confinement,
-            p_plasma_loss_mw,
+        return ConfinementTimeData(
+            pden_electron_transport_loss_mw=pden_electron_transport_loss_mw,
+            pden_ion_transport_loss_mw=pden_ion_transport_loss_mw,
+            t_electron_energy_confinement=t_electron_energy_confinement,
+            t_ion_energy_confinement=t_ion_energy_confinement,
+            t_plasma_energy_confinement=t_energy_confinement,
+            p_plasma_loss_mw=p_plasma_loss_mw,
+            hstar=hstar,
         )
 
     @staticmethod
@@ -1054,14 +1074,7 @@ class PlasmaConfinementTime(Model):
                 balance.
 
             """
-            (
-                ptrez,
-                ptriz,
-                _,
-                _,
-                _,
-                _,
-            ) = self.calculate_confinement_time(
+            confinement_time_data = self.calculate_confinement_time(
                 m_fuel_amu=self.data.physics.m_fuel_amu,
                 p_alpha_total_mw=self.data.physics.p_alpha_total_mw,
                 aspect=self.data.physics.aspect,
@@ -1091,8 +1104,8 @@ class PlasmaConfinementTime(Model):
 
             # At power balance, fhz is zero.
             fhz_value = (
-                ptrez
-                + ptriz
+                confinement_time_data.pden_electron_transport_loss_mw
+                + confinement_time_data.pden_ion_transport_loss_mw
                 - self.data.physics.f_p_alpha_plasma_deposited
                 * self.data.physics.pden_alpha_total_mw
                 - self.data.physics.pden_non_alpha_charged_mw
@@ -1101,7 +1114,10 @@ class PlasmaConfinementTime(Model):
 
             # Take into account whether injected power is included in tau_e calculation
             # (i.e. whether device is ignited)
-            if self.data.physics.i_plasma_ignited == 0:
+            if (
+                PlasmaIgnitionModel(self.data.physics.i_plasma_ignited)
+                == PlasmaIgnitionModel.NON_IGNITED
+            ):
                 fhz_value -= (
                     self.data.current_drive.p_hcd_injected_total_mw
                     / self.data.physics.vol_plasma
@@ -1128,7 +1144,10 @@ class PlasmaConfinementTime(Model):
         """
         po.oheadr(self.outfile, "Plasma Energy Confinement")
 
-        if self.data.physics.i_plasma_ignited == 1:
+        if (
+            PlasmaIgnitionModel(self.data.physics.i_plasma_ignited)
+            == PlasmaIgnitionModel.IGNITED
+        ):
             po.ocmmnt(
                 self.outfile,
                 "Device is assumed to be ignited for the calculation of confinement "
@@ -1143,24 +1162,24 @@ class PlasmaConfinementTime(Model):
             f"Confinement scaling law: {tauelaw}",
         )
 
-        po.ovarst(
+        po.ovarre(
             self.outfile,
             "Confinement scaling law",
             "(tauelaw)",
             f'"{tauelaw.strip().split(" ")[0]}"',
         )
 
-        po.ovarrf(
+        po.ovarre(
             self.outfile, "Confinement H factor", "(hfact)", self.data.physics.hfact
         )
-        po.ovarrf(
+        po.ovarre(
             self.outfile,
             "Global thermal energy confinement time, from scaling (τₑ) (s)",
             "(t_energy_confinement)",
             self.data.physics.t_energy_confinement,
             "OP ",
         )
-        po.ovarrf(
+        po.ovarre(
             self.outfile,
             "Directly calculated total energy confinement time (τₑᵦ) (s)",
             "(t_energy_confinement_beta)",
@@ -1175,14 +1194,14 @@ class PlasmaConfinementTime(Model):
         po.ocmmnt(self.outfile, "----------------------------")
         po.oblnkl(self.outfile)
 
-        po.ovarrf(
+        po.ovarre(
             self.outfile,
             "Ion energy confinement time, from scaling (s)",
             "(t_ion_energy_confinement)",
             self.data.physics.t_ion_energy_confinement,
             "OP ",
         )
-        po.ovarrf(
+        po.ovarre(
             self.outfile,
             "Electron energy confinement time, from scaling (s)",
             "(t_electron_energy_confinement)",
@@ -1216,7 +1235,7 @@ class PlasmaConfinementTime(Model):
             self.data.physics.p_plasma_loss_mw,
             "OP ",
         )
-        po.ovarin(
+        po.ovarre(
             self.outfile,
             "Switch for radiation loss term usage in power balance",
             "(i_rad_loss)",
@@ -1249,7 +1268,7 @@ class PlasmaConfinementTime(Model):
             )
 
         po.ocmmnt(self.outfile, f"  (Radiation correction: {model.description})")
-        po.ovarrf(
+        po.ovarre(
             self.outfile,
             "H* non-radiation corrected",
             "(hstar)",
@@ -1261,7 +1280,7 @@ class PlasmaConfinementTime(Model):
         po.oblnkl(self.outfile)
         po.ocmmnt(self.outfile, "----------------------------")
         po.oblnkl(self.outfile)
-        po.ovarrf(
+        po.ovarre(
             self.outfile,
             "Alpha particle confinement time (τ_α) (s)",  # noqa: RUF001
             "(t_alpha_confinement)",
@@ -1270,14 +1289,14 @@ class PlasmaConfinementTime(Model):
         )
         # Note alpha confinement time is no longer equal to fuel particle
         # confinement time.
-        po.ovarrf(
+        po.ovarre(
             self.outfile,
             "Alpha particle to energy confinement time ratio (τ_α/τₑ)",  # noqa: RUF001
             "(f_t_alpha_energy_confinement)",
             self.data.physics.f_t_alpha_energy_confinement,
             "OP ",
         )
-        po.ovarrf(
+        po.ovarre(
             self.outfile,
             "Lower limit on f_t_alpha_energy_confinement ((τ_α/τₑ)>)",  # noqa: RUF001
             "(f_t_alpha_energy_confinement_min)",
@@ -1347,14 +1366,8 @@ class PlasmaConfinementTime(Model):
         ):
             if i_confinement_time == 25:
                 continue
-            (
-                _,
-                _,
-                taueez,
-                _,
-                _,
-                _,
-            ) = self.calculate_confinement_time(
+
+            confinement_time_data = self.calculate_confinement_time(
                 m_fuel_amu=self.data.physics.m_fuel_amu,
                 p_alpha_total_mw=self.data.physics.p_alpha_total_mw,
                 aspect=self.data.physics.aspect,
@@ -1397,7 +1410,8 @@ class PlasmaConfinementTime(Model):
             po.ocmmnt(
                 self.outfile,
                 f"{'':>2}{scaling_name:<38}"
-                f"{taueez:<28.3f}{self.data.physics.hfac[i_confinement_time - 1]:.3f}",
+                f"{confinement_time_data.t_plasma_energy_confinement:<28.3f}"
+                f"{self.data.physics.hfac[i_confinement_time - 1]:.3f}",
             )
 
         po.oblnkl(self.outfile)
@@ -1658,7 +1672,7 @@ class PlasmaConfinementTime(Model):
 
         References
         ----------
-            - T.C.Hender et.al., 'Physics Assesment of the European Reactor Study',
+            - T.C.Hender et.al., 'Physics Assessment of the European Reactor Study',
               AEA FUS 172, 1992
 
             - N. A. Uckan, International Atomic Energy Agency, Vienna (Austria)and
@@ -1717,7 +1731,7 @@ class PlasmaConfinementTime(Model):
 
         References
         ----------
-            - T.C.Hender et.al., 'Physics Assesment of the European Reactor Study',
+            - T.C.Hender et.al., 'Physics Assessment of the European Reactor Study',
               AEA FUS 172, 1992
         """
         term1 = (
@@ -1784,7 +1798,7 @@ class PlasmaConfinementTime(Model):
 
         References
         ----------
-            - T.C.Hender et.al., 'Physics Assesment of the European Reactor Study',
+            - T.C.Hender et.al., 'Physics Assessment of the European Reactor Study',
               AEA FUS 172, 1992
         """
         rll = (rminor**2 * rmajor * kappa) ** (1.0e0 / 3.0e0)
@@ -2072,7 +2086,7 @@ class PlasmaConfinementTime(Model):
 
         References
         ----------
-            - T.C.Hender et.al., 'Physics Assesment of the European Reactor Study',
+            - T.C.Hender et.al., 'Physics Assessment of the European Reactor Study',
               AEA FUS 172, 1992
         """
         return (
@@ -2123,7 +2137,7 @@ class PlasmaConfinementTime(Model):
 
         References
         ----------
-            - T.C.Hender et.al., 'Physics Assesment of the European Reactor Study',
+            - T.C.Hender et.al., 'Physics Assessment of the European Reactor Study',
               AEA FUS 172, 1992
         """
         return (
@@ -2176,7 +2190,7 @@ class PlasmaConfinementTime(Model):
 
         References
         ----------
-            - T.C.Hender et.al., 'Physics Assesment of the European Reactor Study',
+            - T.C.Hender et.al., 'Physics Assessment of the European Reactor Study',
               AEA FUS 172, 1992
         """
         return (
@@ -2226,7 +2240,7 @@ class PlasmaConfinementTime(Model):
 
         References
         ----------
-            - T.C.Hender et.al., 'Physics Assesment of the European Reactor Study',
+            - T.C.Hender et.al., 'Physics Assessment of the European Reactor Study',
               AEA FUS 172, 1992
         """
         qhat = (
@@ -2284,7 +2298,7 @@ class PlasmaConfinementTime(Model):
 
         References
         ----------
-            - T.C.Hender et.al., 'Physics Assesment of the European Reactor Study',
+            - T.C.Hender et.al., 'Physics Assessment of the European Reactor Study',
               AEA FUS 172, 1992
         """
         return (
@@ -2337,7 +2351,7 @@ class PlasmaConfinementTime(Model):
 
         References
         ----------
-            - T.C.Hender et.al., 'Physics Assesment of the European Reactor Study',
+            - T.C.Hender et.al., 'Physics Assessment of the European Reactor Study',
               AEA FUS 172, 1992
         """
         return (

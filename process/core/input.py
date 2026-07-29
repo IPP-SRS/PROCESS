@@ -15,7 +15,7 @@ from process.core.exceptions import (
 )
 from process.core.solver.constraints import ConstraintManager
 from process.data_structure.impurity_radiation_variables import N_IMPURITIES
-from process.data_structure.numerics import IPEQNS, IPNVARS
+from process.data_structure.numerics import IPNVARS
 from process.data_structure.pfcoil_variables import N_PF_GROUPS_MAX
 from process.data_structure.physics_variables import N_CONFINEMENT_SCALINGS
 from process.data_structure.scan_variables import IPNSCNS, IPNSCNV
@@ -48,7 +48,7 @@ def _icc_additional_actions(
     data.numerics.n_constraints += 1
 
 
-@dataclass
+@dataclass(slots=True)
 class InputVariable:
     """A variable to be parsed from the input file."""
 
@@ -66,8 +66,8 @@ class InputVariable:
         Callable[[str, ValidInputTypes, int | None, InputVariable], ValidInputTypes]
         | None
     ) = None
-    """A function that takes the input variable: name, value, array index, and config (this dataclass)
-    as input and returns a cleaned version of the input value. May raise
+    """A function that takes the input variable: name, value, array index, and config
+    (this dataclass) as input and returns a cleaned version of the input value. May raise
     a ProcessValidationError.
 
     NOTE: The value passed in has already been cleaned in the default way and has
@@ -77,19 +77,22 @@ class InputVariable:
         Callable[[str, ValidInputTypes, int | None, InputVariable, DataStructure], None]
         | None
     ) = None
-    """A function that takes the input variable: name, value, array index, config (this dataclass), and
-    the data structure object as input and performs some additional action in addition to the default
+    """A function that takes the input variable: name, value, array index, config
+    (this dataclass), and the data structure object as input and performs some additional
+    action in addition to the default
     actions prescribed by the variables config. May raise a ProcessValidationError.
 
     NOTE: The value passed in has already been cleaned in the default
     way and has been cast to the specified `type`.
 
-    NOTE: the input name is the cleaned name as in the input file NOT the `target_variable`.
+    NOTE:
+    the input name is the cleaned name as in the input file NOT the `target_variable`.
     """
     target_name: str | None = None
     """Indicates the parsed variable name is different to its target on the `module`."""
     set_variable: bool = True
-    """Do not attempt to set the variable on the module. Instead only do any `additional_actions`."""
+    """Do not attempt to set the variable on the module.
+    Instead only do any `additional_actions`."""
 
     def __post_init__(self):
         if self.type not in DataTypes:
@@ -104,7 +107,8 @@ class InputVariable:
 
         if not self.set_variable and self.additional_actions is None:
             logger.warning(
-                "Not setting variable or performing an additional action. Why are you parsing this variable?",
+                "Not setting variable or performing an additional action. "
+                "Why are you parsing this variable?",
                 stacklevel=2,
             )
 
@@ -191,7 +195,9 @@ INPUT_VARIABLES = {
     "admv": InputVariable("buildings", float, range=(1.0e4, 1.0e6)),
     "airtemp": InputVariable("water_use", float, range=(-15.0, 40.0)),
     "alfapf": InputVariable("pf_coil", float, range=(1e-12, 1.0)),
-    "alstroh": InputVariable("pf_coil", float, range=(1000000.0, 100000000000.0)),
+    "stress_cs_steel_max": InputVariable(
+        "pf_coil", float, range=(1000000.0, 100000000000.0)
+    ),
     "amortization": InputVariable("costs", float, range=(1.0, 50.0)),
     "anginc": InputVariable("divertor", float, range=(0.0, 1.5707)),
     "rminor_min": InputVariable("build", float, range=(0.01, 10.0)),
@@ -234,7 +240,7 @@ INPUT_VARIABLES = {
     "bmn": InputVariable("stellarator", float, range=(0.0001, 0.01)),
     "b_tf_inboard_max": InputVariable("constraints", float, range=(0.1, 50.0)),
     "f_c_plasma_bootstrap_max": InputVariable(
-        "current_drive", float, range=(-0.999, 0.999)
+        "current_drive", float, range=(0.0, 0.999)
     ),
     "f_c_plasma_bootstrap": InputVariable("current_drive", float, range=(0.0, 1.0)),
     "breeder_f": InputVariable("fwbs", float, range=(0.0, 1.0)),
@@ -412,7 +418,7 @@ INPUT_VARIABLES = {
     "f_asym": InputVariable("stellarator", float, range=(0.9, 2.0)),
     "f_fw_peak": InputVariable("fwbs", float, range=(1.0, 100.0)),
     "f_fw_rad_max": InputVariable("constraints", float, range=(0.1, 10)),
-    "f_nd_alpha_electron": InputVariable("physics", float, range=(1e-12, 1.0)),
+    "f_nd_alpha_thermal_electron": InputVariable("physics", float, range=(1e-12, 1.0)),
     "f_nd_beam_electron": InputVariable("physics", float, range=(0.0, 1.0)),
     "f_nd_protium_electrons": InputVariable("physics", float, range=(0.0, 1.0)),
     "f_neut_shield": InputVariable("fwbs", float, range=(0.0, 1.0)),
@@ -702,13 +708,16 @@ INPUT_VARIABLES = {
         "superconducting_tfcoil",
         float,
         range=(1e-08, 0.0001),
-        additional_actions=lambda _n, rt, _i, _c: (
+        additional_actions=lambda _n, rt, *_: (
             rt <= 1e-6
             or logger.warning(
                 (
-                    "the relationship between REBCO layer thickness and current density is not linear."
-                    "REBCO layer thicknesses > 1um should be considered an aggressive extrapolation of"
-                    "current HTS technology and any results must be considered speculative."
+                    "the relationship between REBCO layer thickness "
+                    "and current density is not linear."
+                    "REBCO layer thicknesses > 1um should be considered "
+                    "an aggressive extrapolation of"
+                    "current HTS technology and any results "
+                    "must be considered speculative."
                 ),
                 stacklevel=1,
             )
@@ -981,7 +990,7 @@ INPUT_VARIABLES = {
     "tf_coppera_m2_max": InputVariable(
         "superconducting_tfcoil", float, range=(1.0e6, 1.0e10)
     ),
-    "cost_model": InputVariable("costs", int, choices=[0, 1, 2]),
+    "i_cost_model": InputVariable("costs", int, choices=[0, 1, 2]),
     "i_vac_pump_dwell": InputVariable("vacuum", int, choices=[0, 1, 2]),
     "i_fw_blkt_vv_shape": InputVariable("fwbs", int, range=(1, 2)),
     "hcdportsize": InputVariable("fwbs", int, range=(1, 2)),
@@ -996,7 +1005,6 @@ INPUT_VARIABLES = {
     "i_cp_joints": InputVariable("tfcoil", int, choices=[0, 1]),
     "i_cp_lifetime": InputVariable("costs", int, range=(0, 3)),
     "i_cs_precomp": InputVariable("build", int, choices=[0, 1]),
-    "i_cs_stress": InputVariable("pf_coil", int, choices=[0, 1]),
     "i_density_limit": InputVariable("physics", int, range=(1, 8)),
     "i_diamagnetic_current": InputVariable("physics", int, choices=[0, 1, 2]),
     "i_div_heat_load": InputVariable("divertor", int, choices=[0, 1, 2]),
@@ -1164,7 +1172,7 @@ INPUT_VARIABLES = {
     "icc": InputVariable(
         None,
         int,
-        range=(1, IPEQNS),
+        choices=ConstraintManager.constraint_ids(),
         additional_actions=_icc_additional_actions,
         set_variable=False,
     ),
@@ -1185,11 +1193,11 @@ def parse_input_file(data_structure_obj: DataStructure):
     data_structure_obj.numerics.nvar = 0
     data_structure_obj.numerics.n_constraints = 0
 
-    input_file = data_structure_obj.globals.fileprefix
-
-    input_file_path = Path("IN.DAT")
-    if input_file != "":
-        input_file_path = Path(input_file)
+    input_file_path = (
+        Path(input_file)
+        if (input_file := data_structure_obj.globals.fileprefix)
+        else Path("IN.DAT")
+    )
 
     with input_file_path.open("r") as f:
         lines = f.readlines()
@@ -1201,7 +1209,7 @@ def parse_input_file(data_structure_obj: DataStructure):
 
         # don't bother trying to process blank lines
         # or comment lines
-        if stripped_line == "" or stripped_line[0] == "*":
+        if not stripped_line or stripped_line[0] == "*":
             continue
 
         # matches (variable name, array index, value)
@@ -1299,7 +1307,8 @@ def parse_input_file(data_structure_obj: DataStructure):
                 data_structure_obj,
             )
 
-        # add the variable to a dictionary indexed by the variable name (in the input file)
+        # add the variable to a dictionary indexed by the variable name
+        # (in the input file)
         variables[variable_name] = {
             "value": clean_variable_value,
             "index": array_index_clean,
@@ -1353,7 +1362,10 @@ def validate_variable(
     try:
         clean_value = config.type(value)
     except ValueError as e:
-        error_msg = f"Cannot cast variable name '{name}' at line {line_number} to a {config.type} (value = {value})"
+        error_msg = (
+            f"Cannot cast variable name '{name}' at line {line_number}"
+            f" to a {config.type} (value = {value})"
+        )
         raise ProcessValidationError(error_msg) from e
 
     if (
@@ -1367,7 +1379,10 @@ def validate_variable(
         raise ProcessValidationError(error_msg)
 
     if config.choices is not None and clean_value not in config.choices:
-        error_msg = f"Variable '{name}' at line {line_number} is not one of {config.choices} (value = {value})"
+        error_msg = (
+            f"Variable '{name}' at line {line_number} is not one of {config.choices}"
+            f" (value = {value})"
+        )
         raise ProcessValidationError(error_msg)
 
     if config.additional_validation is not None:
@@ -1406,8 +1421,10 @@ def set_scalar_variable(name: str, value: ValidInputTypes, config: InputVariable
 def set_array_variable(name: str, value: str, array_index: int, config: InputVariable):
     """Set an array variable in the `config.module`.
 
-    The way PROCESS input files are structured, each element of the array is provided on one line
-    so this function just needs to set the `value` at `array_index` (-1) because of Fortran-based indexing.
+    The way PROCESS input files are structured, each element of the array is provided on
+    one line
+    so this function just needs to set the `value` at `array_index` (-1)
+    because of Fortran-based indexing.
 
     Parameters
     ----------

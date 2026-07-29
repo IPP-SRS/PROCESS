@@ -19,6 +19,11 @@ from process.core.model import DataStructure, Model
 from process.data_structure.build_variables import TFCSRadialConfiguration
 from process.data_structure.pfcoil_variables import PFConductorModel
 from process.data_structure.physics_variables import DivertorNumberModels
+from process.data_structure.superconducting_tf_coil_variables import TFWPIntegerTurnType
+from process.models.engineering.materials import (
+    calculate_tresca_stress,
+    calculate_von_mises_stress,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -397,7 +402,8 @@ class TFCoil(Model):
               magnet [T].
             - **c_tf_total** (*float*): Total current in TF coils [A].
             - **c_tf_coil** (*float*): Current per TF coil [A].
-            - **j_tf_coil_full_area** (*float*): Global inboard leg average current density in TF coils [A/m²].
+            - **j_tf_coil_full_area** (*float*):
+                 Global inboard leg average current density in TF coils [A/m²].
         """
         # Calculation of the maximum B field on the magnet [T]
         b_tf_inboard_peak_symmetric = (
@@ -634,7 +640,7 @@ class TFCoil(Model):
         """
         # General coil parameters
         po.oheadr(self.outfile, "General TF Coil Parameters")
-        po.ovarin(
+        po.ovarre(
             self.outfile,
             "TF conductor technology",
             "(i_tf_sup)",
@@ -642,14 +648,15 @@ class TFCoil(Model):
         )
         po.ocmmnt(
             self.outfile,
-            f"TF conductor model selected: {TFConductorModel(self.data.tfcoil.i_tf_sup).name}",
+            "TF conductor model selected: "
+            f"{TFConductorModel(self.data.tfcoil.i_tf_sup).name}",
         )
         po.oblnkl(self.outfile)
         po.ocmmnt(self.outfile, "----------------------------")
         po.oblnkl(self.outfile)
 
         # Coil shape
-        po.ovarin(
+        po.ovarre(
             self.outfile,
             "TF coil shape model used",
             "(i_tf_shape)",
@@ -660,7 +667,8 @@ class TFCoil(Model):
             po.ocmmnt(self.outfile, "D-shape coil, inner surface shape approximated by")
             po.ocmmnt(
                 self.outfile,
-                "by a straight segment and elliptical arcs between the following points:",
+                "by a straight segment and elliptical arcs between the "
+                "following points:",
             )
             po.oblnkl(self.outfile)
         elif self.data.tfcoil.i_tf_shape == TFCoilShapeModel.PICTURE_FRAME:
@@ -675,7 +683,8 @@ class TFCoil(Model):
         for ii in range(5):
             po.write(
                 self.outfile,
-                f"  {ii}              {self.data.tfcoil.r_tf_arc[ii]:.6e}  {self.data.tfcoil.z_tf_arc[ii]:.6e}",
+                f"  {ii}              {self.data.tfcoil.r_tf_arc[ii]:.6e}  "
+                f"{self.data.tfcoil.z_tf_arc[ii]:.6e}",
             )
             po.ovarre(
                 constants.MFILE,
@@ -693,7 +702,7 @@ class TFCoil(Model):
         po.ocmmnt(self.outfile, "----------------------------")
         po.oblnkl(self.outfile)
 
-        po.ovarin(
+        po.ovarre(
             self.outfile,
             "TF plasma-facing case geometry type switch",
             "(i_tf_case_geom)",
@@ -709,7 +718,7 @@ class TFCoil(Model):
         po.oblnkl(self.outfile)
 
         # Joints strategy
-        po.ovarin(
+        po.ovarre(
             self.outfile,
             "Presence of TF demountable joints",
             "(itart)",
@@ -728,7 +737,7 @@ class TFCoil(Model):
         po.oblnkl(self.outfile)
 
         # Centring forces support strategy
-        po.ovarin(
+        po.ovarre(
             self.outfile,
             "TF inboard leg support strategy model switch",
             "(i_tf_bucking)",
@@ -771,7 +780,7 @@ class TFCoil(Model):
 
         # TF coil geometry
         po.osubhd(self.outfile, "TF coil Geometry :")
-        po.ovarin(
+        po.ovarre(
             self.outfile,
             "Number of TF coils",
             "(n_tf_coils)",
@@ -1706,7 +1715,7 @@ class TFCoil(Model):
         # Rem : this force does not depends on the TF shape or the presence of
         #        sliding joints, the in/outboard vertical tension repartition is
         # -#
-        # Ouboard leg WP plasma side radius without ground insulation/insertion gat [m]
+        # Outboard leg WP plasma side radius without ground insulation/insertion gat [m]
         if i_tf_sup == 1:
             r_tf_wp_outboard_inner_conductor = (
                 r_tf_outboard_in
@@ -1806,7 +1815,7 @@ class TFCoil(Model):
             # Inboard vertical tension [N]
             vforce = f_vforce_inboard * vforce_tot
 
-            # Ouboard vertical tension [N]
+            # Outboard vertical tension [N]
             vforce_outboard = vforce * ((1.0e0 / f_vforce_inboard) - 1.0e0)
 
         # Total vertical force
@@ -2217,8 +2226,6 @@ class TFCoil(Model):
         i_tf_bucking,
         r_tf_inboard_in,
         dr_bore,
-        z_tf_inside_half,
-        f_z_cs_tf_internal,
         dr_cs,
         i_tf_inside_cs,
         dr_tf_inboard,
@@ -2278,6 +2285,7 @@ class TFCoil(Model):
         a_tf_coil_inboard_case,
         vforce,
         a_tf_turn_steel,
+        a_cs_poloidal: float,
     ):
         """TF coil stress routine
 
@@ -2298,10 +2306,6 @@ class TFCoil(Model):
         r_tf_inboard_in :
 
         dr_bore :
-
-        z_tf_inside_half :
-
-        f_z_cs_tf_internal :
 
         dr_cs :
 
@@ -2420,6 +2424,9 @@ class TFCoil(Model):
         vforce :
 
         a_tf_turn_steel :
+
+        a_cs_poloidal : float
+            Area of the CS poloidal cross-section [m²]
 
         Raises
         ------
@@ -2544,21 +2551,12 @@ class TFCoil(Model):
                 # as the TF is called before CS in caller.f90
                 # -#
 
-                # CS vertical cross-section area [m2]
-                if i_tf_inside_cs == TFCSRadialConfiguration.TF_INSIDE_CS:
-                    a_oh = (
-                        2.0e0
-                        * z_tf_inside_half
-                        * f_z_cs_tf_internal
-                        * (dr_bore - dr_tf_inboard)
-                    )
-                else:
-                    a_oh = 2.0e0 * z_tf_inside_half * f_z_cs_tf_internal * dr_cs
-
                 # Maximum current in Central Solenoid, at either BOP or EOF [MA-turns]
                 # Absolute value
                 curr_oh_max = (
-                    1.0e-6 * np.maximum(j_cs_flat_top_end, j_cs_pulse_start) * a_oh
+                    1.0e-6
+                    * np.maximum(j_cs_flat_top_end, j_cs_pulse_start)
+                    * a_cs_poloidal
                 )
 
                 #  Number of turns
@@ -2569,7 +2567,7 @@ class TFCoil(Model):
                 )
 
                 # CS Turn vertical cross-sectionnal area
-                a_cs_turn = a_oh / n_oh_turns
+                a_cs_turn = a_cs_poloidal / n_oh_turns
 
                 # CS coil turn geometry calculation - stadium shape
                 # Literature: https://doi.org/10.1016/j.fusengdes.2017.04.052
@@ -2744,7 +2742,7 @@ class TFCoil(Model):
             # Non-integer or interger number of turns
             t_cable_eyng = (
                 dx_tf_turn_cable_space_average
-                if i_tf_turns_integer == 0
+                if i_tf_turns_integer == TFWPIntegerTurnType.NON_INTEGER
                 else dr_tf_turn_cable_space
             )
 
@@ -2904,7 +2902,7 @@ class TFCoil(Model):
             r_wp_inner_eff = np.double(r_tf_wp_inboard_inner)
             r_wp_outer_eff = np.double(r_tf_wp_inboard_outer)
 
-        # Thickness of the layer representing the WP in stress calcualtions [m]
+        # Thickness of the layer representing the WP in stress calculations [m]
         dr_tf_wp_eff = r_wp_outer_eff - r_wp_outer_eff
 
         # Thickness of WP with homogeneous stress property [m]
@@ -3135,19 +3133,20 @@ class TFCoil(Model):
         # Tresca / Von Mises yield criteria calculations
         # -----------------------------
         # Array equation
-        s_shear_tf = np.maximum(
-            np.absolute(sig_tf_r - sig_tf_z), np.absolute(sig_tf_z - sig_tf_t)
+
+        s_shear_tf = calculate_tresca_stress(
+            stress_x=sig_tf_r, stress_y=sig_tf_t, stress_z=sig_tf_z
         )
 
         # Array equation
 
-        sig_tf_vmises = np.sqrt(
-            0.5e0
-            * (
-                (sig_tf_r - sig_tf_t) ** 2
-                + (sig_tf_r - sig_tf_z) ** 2
-                + (sig_tf_z - sig_tf_t) ** 2
-            )
+        sig_tf_vmises = calculate_von_mises_stress(
+            stress_x=sig_tf_r,
+            stress_y=sig_tf_t,
+            stress_z=sig_tf_z,
+            stress_shear_xy=0.0,
+            stress_shear_yz=0.0,
+            stress_shear_zx=0.0,
         )
 
         # Array equation
@@ -3163,9 +3162,23 @@ class TFCoil(Model):
             ):
                 # Addaped Von-mises stress calculation to WP strucure [Pa]
 
-                svmxz = sigvm(0.0e0, sig_tf_t[ii], sig_tf_z[ii], 0.0e0, 0.0e0, 0.0e0)
+                svmxz = calculate_von_mises_stress(
+                    stress_x=0.0e0,
+                    stress_y=sig_tf_t[ii],
+                    stress_z=sig_tf_z[ii],
+                    stress_shear_xy=0.0e0,
+                    stress_shear_yz=0.0e0,
+                    stress_shear_zx=0.0e0,
+                )
 
-                svmyz = sigvm(sig_tf_r[ii], 0.0e0, sig_tf_z[ii], 0.0e0, 0.0e0, 0.0e0)
+                svmyz = calculate_von_mises_stress(
+                    stress_x=sig_tf_r[ii],
+                    stress_y=0.0e0,
+                    stress_z=sig_tf_z[ii],
+                    stress_shear_xy=0.0e0,
+                    stress_shear_yz=0.0e0,
+                    stress_shear_zx=0.0e0,
+                )
                 sig_tf_vmises[ii] = max(svmxz, svmyz)
 
                 # Maximum shear stress for the Tresca yield criterion using CEA
@@ -3702,44 +3715,6 @@ def eyoung_parallel(
     return eyoung_j_3, a_3, poisson_j_perp_3
 
 
-@numba.njit(cache=True)
-def sigvm(sx: float, sy: float, sz: float, txy: float, txz: float, tyz: float) -> float:
-    """Calculates Von Mises stress in a TF coil
-
-    This routine calculates the Von Mises combination of
-    stresses (Pa) in a TF coil.
-
-    Parameters
-    ----------
-    sx :
-        In-plane stress in X direction [Pa]
-    sy :
-        In-plane stress in Y direction [Pa]
-    sz :
-        In-plane stress in Z direction [Pa]
-    txy :
-        Out-of-plane stress in X-Y plane [Pa]
-    txz :
-        Out-of-plane stress in X-Z plane [Pa]
-    tyz :
-        Out-of-plane stress in Y-Z plane [Pa]
-
-    Returns
-    -------
-    :
-        Von Mises combination of stresses (Pa) in a TF coil.
-    """
-    return np.sqrt(
-        0.5
-        * (
-            (sx - sy) ** 2
-            + (sx - sz) ** 2
-            + (sz - sy) ** 2
-            + 6 * (txy**2 + txz**2 + tyz**2)
-        )
-    )
-
-
 @numba.njit(cache=True, error_model="numpy")
 def extended_plane_strain(
     nu_t,
@@ -3942,7 +3917,7 @@ def extended_plane_strain(
     # Lame parameters and strains vector at outer radius
     # of each layer
 
-    # The stress calcualtion differential equations is analytically sloved
+    # The stress calculation differential equations is analytically sloved
     # The final solution is given by the layer boundary conditions on
     # radial stress and displacement between layers solved
     # The problem is set as aa.cc = bb, cc being the constant we search

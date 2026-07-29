@@ -109,7 +109,7 @@ p_plant_electric_net_required_mw = 100.0 * minimum net electric
 
 *------------------Cost Variables------------------*
 
-cost_model = 0 * Switch for cost model;
+i_cost_model = 0 * Switch for cost model;
 i_plant_availability   = 0 * Switch for plant availability model;
 ifueltyp = 0 * Switch for fuel type;
 lsa      = 2 * Level of safety assurance switch (generally; use 3 or 4);
@@ -280,7 +280,7 @@ itartpf  = 1 * switch for Spherical Tokamak PF models;
 kappa    = 2.8 * plasma separatrix elongation (calculated if `i_plasma_geometry = 1-5; 7 or 9-10`)
 q95        = 5.835830999686161 * Safety factor 'near' plasma edge (`iteration variable 18`) equal to q95
 q0       = 2.0 * safety factor on axis
-f_nd_alpha_electron = 0.08870796537675113 * thermal alpha density/electron density (`iteration variable 109`)
+f_nd_alpha_thermal_electron = 0.08870796537675113 * thermal alpha density/electron density (`iteration variable 109`)
 ind_plasma_internal_norm      = 0.3 * plasma normalised internal inductance
 i_ind_plasma_internal_norm = 0 * Normalised plasma intenral induction selection switch (0 = user input) 
 rmajor   = 4.5 * plasma major radius (m) (`iteration variable 3`)
@@ -352,7 +352,7 @@ i_tf_sup = 1 * Switch for TF coil conductor model;
 i_tf_shape = 2 * Switch for TF coil toroidal shape;
 i_tf_bucking = 1 * Switch for TF inboard suport structure design;
 eyoung_res_tf_buck = 205.0e9 * Resistive TF magnets bucking cylinder young modulus (Pa)
-ripple_b_tf_plasma_edge_max   = 1.0 * aximum allowable toroidal field ripple amplitude at plasma edge (%)
+ripple_b_tf_plasma_edge_max   = 1.0 * maximum allowable toroidal field ripple amplitude at plasma edge (%)
 i_cp_joints = 0 * Switch for CP demoutable joints type
 n_tf_coils     = 12 * Number of TF coils (default = 50 for stellarators); Number of TF coils outer legs for ST
 tftmp    = 20.0 * peak helium coolant temperature in TF coils and PF coils (K)

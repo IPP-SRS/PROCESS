@@ -12,7 +12,8 @@ class Cryostat(Model):
     def run(self):
         """Run the cryostat calculations.
 
-        This method runs the cryostat calculations, including the calculation of the cryostat geometry.
+        This method runs the cryostat calculations,
+        including the calculation of the cryostat geometry.
         """
         # Calculate cryostat geometry
         self.external_cryo_geometry()
@@ -20,10 +21,14 @@ class Cryostat(Model):
     def external_cryo_geometry(self):
         """Calculate cryostat geometry.
 
-        This method calculates the geometry of the cryostat, including the inboard radius,
-        the vertical clearance between the uppermost PF coil and the cryostat lid, the half-height
-        of the cryostat, the vertical clearance between the TF coil and the cryostat, the cryostat volume,
-        the vacuum vessel mass, and the sum of internal vacuum vessel and cryostat masses.
+        This method calculates the geometry of the cryostat, i
+        ncluding the inboard radius,
+        the vertical clearance between the uppermost PF coil and the cryostat lid,
+        the half-height of the cryostat,
+        the vertical clearance between the TF coil and the cryostat,
+        the cryostat volume,
+        the vacuum vessel mass,
+        and the sum of internal vacuum vessel and cryostat masses.
         """
         # Cryostat radius [m]
         # Take radius of furthest PF coil and add clearance
@@ -59,7 +64,8 @@ class Cryostat(Model):
         )
 
         # Cryostat structure volume [m^3]
-        # Calculate by taking the volume of the outer cryostat and subtracting the volume of the inner cryostat
+        # Calculate by taking the volume of the outer cryostat
+        # and subtracting the volume of the inner cryostat
         self.data.fwbs.vol_cryostat = (
             (
                 np.pi
@@ -78,42 +84,42 @@ class Cryostat(Model):
         """Outputs the cryostat geometry details to the output file."""
         po.oheadr(self.outfile, "Cryostat build")
 
-        po.ovarrf(
+        po.ovarre(
             self.outfile,
             "Cryostat thickness (m)",
             "(dr_cryostat)",
             self.data.build.dr_cryostat,
             "OP ",
         )
-        po.ovarrf(
+        po.ovarre(
             self.outfile,
             "Cryostat internal radius (m)",
             "(r_cryostat_inboard)",
             self.data.fwbs.r_cryostat_inboard,
             "OP ",
         )
-        po.ovarrf(
+        po.ovarre(
             self.outfile,
             "Cryostat internal half height (m)",
             "(z_cryostat_half_inside)",
             self.data.fwbs.z_cryostat_half_inside,
             "OP ",
         )
-        po.ovarrf(
+        po.ovarre(
             self.outfile,
             "Vertical clearance from highest PF coil to cryostat (m)",
             "(dz_pf_cryostat)",
             self.data.blanket.dz_pf_cryostat,
             "OP ",
         )
-        po.ovarrf(
+        po.ovarre(
             self.outfile,
             "Cryostat structure volume (m³)",
             "(vol_cryostat)",
             self.data.fwbs.vol_cryostat,
             "OP ",
         )
-        po.ovarrf(
+        po.ovarre(
             self.outfile,
             "Cryostat internal volume (m³)",
             "(vol_cryostat_internal)",

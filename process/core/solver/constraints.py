@@ -11,7 +11,11 @@ from process.core.model import DataStructure
 from process.data_structure.build_variables import TFCSRadialConfiguration
 from process.models.physics.density_limit import DensityLimitModel
 from process.models.physics.exhaust import PlasmaExhaust
-from process.models.physics.physics import BetaComponentLimits, PlasmaBeta
+from process.models.physics.physics import (
+    BetaComponentLimits,
+    PlasmaBeta,
+    PlasmaIgnitionModel,
+)
 from process.models.tfcoil.base import TFConductorModel
 
 ConstraintSymbolType = Literal["=", ">=", "<="]
@@ -24,9 +28,11 @@ class ConstraintRegistration:
     """Contains the constraint equation and metadata about the constraint."""
 
     name: Hashable
-    """The name (often a number) of the constraint. It can be any hashable e.g. a string."""
+    """
+    The name (often a number) of the constraint. It can be any hashable e.g. a string.
+    """
     constraint_equation: Callable[["ConstraintRegistration"], "ConstraintResult"]
-    """The constraint equation that, when called, returns the normalised resiudal,
+    """The constraint equation that, when called, returns the normalised residual,
     constraint value, and constraint error.
     """
     units: str
@@ -47,12 +53,14 @@ class ConstraintResult(ConstraintRegistration):
     """The residual of the constraint. Ie the amount a constraint is or is not violated.
     A negative residual indicates infeasibility.
     A positive residual indicates feasibility.
-    A 0 residual indicates that a constraint value is exactly equal to its bound (feasible, just).
+    A 0 residual indicates that a constraint value is exactly equal to its bound
+    (feasible, just).
 
     The residual will have the same physical units as the constraint value/bound.
     """
     normalised_residual: float
-    """The normalised residual of the constraint. The sign of the normalised residual is interpreted
+    """The normalised residual of the constraint.
+    The sign of the normalised residual is interpreted
     identical to the residual.
     """
     constraint_value: float
@@ -79,6 +87,10 @@ class ConstraintManager:
     def num_constraints(cls):
         """Return the number of constraints currently in the registry"""
         return len(cls._constraint_registry)
+
+    @classmethod
+    def constraint_ids(cls):
+        return tuple(cls._constraint_registry.keys())
 
     @classmethod
     def register_constraint(
@@ -130,7 +142,7 @@ class ConstraintManager:
 
     @classmethod
     def evaluate_constraint(cls, name: Hashable, data: DataStructure):
-        """Evalutes a constraint with a given name.
+        """Evaluates a constraint with a given name.
 
         Parameters
         ----------
@@ -235,7 +247,8 @@ def constraint_equation_2(constraint_registration, data):
     """
 
      i_rad_loss: switch for radiation loss term usage in power balance (see User Guide):
-    -  0 total power lost is scaling power plus radiation (needed for i_plasma_pedestal=2,3)
+    -  0 total power lost is scaling power plus radiation
+        (needed for i_plasma_pedestal=2,3)
     -  1 total power lost is scaling power plus core radiation only
     -  2 total power lost is scaling power only, with no additional
         allowance for radiation. This is not recommended for power plant models.
@@ -244,15 +257,24 @@ def constraint_equation_2(constraint_registration, data):
     -  0 do not assume plasma ignition;
     -  1 assume ignited (but include auxiliary power in costs)
 
-     pden_electron_transport_loss_mw: electron transport power per volume (MW/m3)
-     pden_ion_transport_loss_mw: ion transport power per volume (MW/m3)
-     pden_plasma_rad_mw: total radiation power per volume (MW/m3)
-     pden_plasma_core_rad_mw: total core radiation power per volume (MW/m3)
-     f_p_alpha_plasma_deposited: fraction of alpha power deposited in plasma
-     pden_alpha_total_mw: alpha power per volume (MW/m3)
-     pden_non_alpha_charged_mw: non-alpha charged particle fusion power per volume (MW/m3)
-     pden_plasma_ohmic_mw: ohmic heating power per volume (MW/m3)
-     p_hcd_injected_total_mw: total auxiliary injected power (MW)
+     pden_electron_transport_loss_mw:
+        electron transport power per volume (MW/m3)
+     pden_ion_transport_loss_mw:
+        ion transport power per volume (MW/m3)
+     pden_plasma_rad_mw:
+        total radiation power per volume (MW/m3)
+     pden_plasma_core_rad_mw:
+        total core radiation power per volume (MW/m3)
+     f_p_alpha_plasma_deposited:
+        fraction of alpha power deposited in plasma
+     pden_alpha_total_mw:
+        alpha power per volume (MW/m3)
+     pden_non_alpha_charged_mw:
+        non-alpha charged particle fusion power per volume (MW/m3)
+     pden_plasma_ohmic_mw:
+        ohmic heating power per volume (MW/m3)
+     p_hcd_injected_total_mw:
+        total auxiliary injected power (MW)
      vol_plasma: plasma volume (m3)
     """
     # pscaling: total transport power per volume (MW/m3)
@@ -270,7 +292,10 @@ def constraint_equation_2(constraint_registration, data):
         pnumerator = pscaling
 
     # if plasma not ignited include injected power
-    if data.physics.i_plasma_ignited == 0:
+    if (
+        PlasmaIgnitionModel(data.physics.i_plasma_ignited)
+        == PlasmaIgnitionModel.NON_IGNITED
+    ):
         pdenom = (
             data.physics.f_p_alpha_plasma_deposited * data.physics.pden_alpha_total_mw
             + data.physics.pden_non_alpha_charged_mw
@@ -295,15 +320,24 @@ def constraint_equation_3(constraint_registration, data):
     - 0 do not assume plasma ignition;
     - 1 assume ignited (but include auxiliary power in costs)
 
-    pden_ion_transport_loss_mw: ion transport power per volume (MW/m3)
-    pden_ion_electron_equilibration_mw: ion/electron equilibration power per volume (MW/m3)
-    f_p_alpha_plasma_deposited: fraction of alpha power deposited in plasma
-    f_pden_alpha_ions_mw: alpha power per volume to ions (MW/m3)
-    p_hcd_injected_ions_mw: auxiliary injected power to ions (MW)
-    vol_plasma: plasma volume (m3)
+    pden_ion_transport_loss_mw:
+        ion transport power per volume (MW/m3)
+    pden_ion_electron_equilibration_mw:
+        ion/electron equilibration power per volume (MW/m3)
+    f_p_alpha_plasma_deposited:
+        fraction of alpha power deposited in plasma
+    f_pden_alpha_ions_mw:
+        alpha power per volume to ions (MW/m3)
+    p_hcd_injected_ions_mw:
+        auxiliary injected power to ions (MW)
+    vol_plasma:
+        plasma volume (m3)
     """
     # No assume plasma ignition:
-    if data.physics.i_plasma_ignited == 0:
+    if (
+        PlasmaIgnitionModel(data.physics.i_plasma_ignited)
+        == PlasmaIgnitionModel.NON_IGNITED
+    ):
         return eq(
             (
                 data.physics.pden_ion_transport_loss_mw
@@ -333,7 +367,8 @@ def constraint_equation_4(constraint_registration, data):
     """Global power balance equation for electrons
 
     i_rad_loss: switch for radiation loss term usage in power balance
-    - 0 total power lost is scaling power plus radiation (needed for i_plasma_pedestal=2,3)
+    - 0 total power lost is scaling power plus radiation
+        (needed for i_plasma_pedestal=2,3)
     - 1 total power lost is scaling power plus core radiation only
     - 2 total power lost is scaling power only, with no additional
         allowance for radiation. This is not recommended for power plant models.
@@ -342,13 +377,20 @@ def constraint_equation_4(constraint_registration, data):
     - 0 do not assume plasma ignition;
     - 1 assume ignited (but include auxiliary power in costs)
 
-    pden_electron_transport_loss_mw: electron transport power per volume (MW/m3)
-    pden_plasma_rad_mw: total radiation power per volume (MW/m3)
-    pden_plasma_core_rad_mw: total core radiation power per volume (MW/m3)
-    f_p_alpha_plasma_deposited: fraction of alpha power deposited in plasma
-    f_pden_alpha_electron_mw: alpha power per volume to electrons (MW/m3)
-    pden_ion_electron_equilibration_mw: ion/electron equilibration power per volume (MW/m3)
-    p_hcd_injected_electrons_mw: auxiliary injected power to electrons (MW)
+    pden_electron_transport_loss_mw:
+        electron transport power per volume (MW/m3)
+    pden_plasma_rad_mw:
+        total radiation power per volume (MW/m3)
+    pden_plasma_core_rad_mw:
+        total core radiation power per volume (MW/m3)
+    f_p_alpha_plasma_deposited:
+        fraction of alpha power deposited in plasma
+    f_pden_alpha_electron_mw:
+        alpha power per volume to electrons (MW/m3)
+    pden_ion_electron_equilibration_mw:
+        ion/electron equilibration power per volume (MW/m3)
+    p_hcd_injected_electrons_mw:
+        auxiliary injected power to electrons (MW)
     vol_plasma: plasma volume (m3)
     """
     # pscaling: total transport power per volume (MW/m3)
@@ -363,7 +405,10 @@ def constraint_equation_4(constraint_registration, data):
         pnumerator = pscaling
 
     # if plasma not ignited include injected power
-    if data.physics.i_plasma_ignited == 0:
+    if (
+        PlasmaIgnitionModel(data.physics.i_plasma_ignited)
+        == PlasmaIgnitionModel.NON_IGNITED
+    ):
         pdenom = (
             data.physics.f_p_alpha_plasma_deposited
             * data.physics.f_pden_alpha_electron_mw
@@ -400,8 +445,10 @@ def constraint_equation_5(constraint_registration, data):
     - 7 Greenwald limit
 
     f_nd_plasma_electron_limit_max scales the constraint such that:
-    nd_plasma_electrons_vol_avg / nd_plasma_electrons_max <= f_nd_plasma_electron_limit_max.
-    (Except when i_density_limit=7 when nd_plasma_electron_line is used, not nd_plasma_electrons_vol_avg)
+    nd_plasma_electrons_vol_avg / nd_plasma_electrons_max <=
+    f_nd_plasma_electron_limit_max.
+    (Except when i_density_limit=7 when nd_plasma_electron_line is used,
+    not nd_plasma_electrons_vol_avg)
     """
     # Apply Greenwald limit to line-averaged density
     if data.physics.i_density_limit == DensityLimitModel.GREENWALD:
@@ -453,7 +500,7 @@ def constraint_equation_7(constraint_registration, data):
     nd_beam_ions_out: hot beam ion density from calculation (/m³)
     nd_beam_ions: hot beam ion density, variable (/m³)
     """
-    if data.physics.i_plasma_ignited == 1:
+    if PlasmaIgnitionModel(data.physics.i_plasma_ignited) == PlasmaIgnitionModel.IGNITED:
         raise ProcessValueError("Do not use constraint equation 7 if i_plasma_ignited=1")
 
     return eq(
@@ -509,9 +556,12 @@ def constraint_equation_11(constraint_registration, data):
 def constraint_equation_12(constraint_registration, data):
     """Equation for volt-second capability lower limit
 
-    vs_plasma_total_required: total Vs needed (Wb)
-    vs_plasma_total_required (lower limit) is positive; vs_cs_pf_total_pulse (available) is negative
-    vs_cs_pf_total_pulse: total flux swing for pulse (Wb)
+    vs_plasma_total_required:
+        total Vs needed (Wb)
+        vs_plasma_total_required (lower limit) is positive;
+        vs_cs_pf_total_pulse (available) is negative
+    vs_cs_pf_total_pulse:
+        total flux swing for pulse (Wb)
     """
     # vs_cs_pf_total_pulse is negative, requires sign change
     return geq(
@@ -539,8 +589,10 @@ def constraint_equation_13(constraint_registration, data):
 def constraint_equation_14(constraint_registration, data):
     """Equation to fix number of NBI decay lengths to plasma centre
 
-    n_beam_decay_lengths_core: neutral beam e-decay lengths to plasma centre
-    n_beam_decay_lengths_core_required: permitted neutral beam e-decay lengths to plasma centre
+    n_beam_decay_lengths_core:
+        neutral beam e-decay lengths to plasma centre
+    n_beam_decay_lengths_core_required:
+        permitted neutral beam e-decay lengths to plasma centre
     """
     return eq(
         data.current_drive.n_beam_decay_lengths_core,
@@ -688,11 +740,17 @@ def constraint_equation_22(constraint_registration, data):
 def constraint_equation_23(constraint_registration, data):
     """Equation for conducting shell radius / rminor upper limit
 
-    rminor: plasma minor radius (m)
-    dr_fw_plasma_gap_outboard: gap between plasma and first wall, outboard side (m)
-    dr_fw_outboard: outboard first wall thickness, initial estimate (m)
-    dr_blkt_outboard: outboard blanket thickness (m)
-    f_r_conducting_wall: maximum ratio of conducting wall distance to plasma minor radius for vertical stability
+    rminor:
+        plasma minor radius (m)
+    dr_fw_plasma_gap_outboard:
+        gap between plasma and first wall, outboard side (m)
+    dr_fw_outboard:
+        outboard first wall thickness, initial estimate (m)
+    dr_blkt_outboard:
+        outboard blanket thickness (m)
+    f_r_conducting_wall:
+        maximum ratio of conducting wall distance to plasma minor radius
+        for vertical stability
     """
     # conducting shell radius (m)
     rcw = (
@@ -733,10 +791,12 @@ def constraint_equation_24(constraint_registration, data):
         or data.stellarator.istell != 0
     ):
         value = data.physics.beta_total_vol_avg
-    # Here, the beta limit applies to only the thermal component, not the fast alpha or neutral beam parts
+    # Here, the beta limit applies to only the thermal component,
+    # not the fast alpha or neutral beam parts
     elif data.physics.i_beta_component == BetaComponentLimits.THERMAL:
         value = data.physics.beta_thermal_vol_avg
-    # Beta limit applies to thermal + neutral beam: components of the total beta, i.e. excludes alphas
+    # Beta limit applies to thermal + neutral beam: components of the total beta,
+    # i.e. excludes alphas
     elif data.physics.i_beta_component == BetaComponentLimits.THERMAL_AND_BEAM:
         value = data.physics.beta_thermal_vol_avg + data.physics.beta_beam
     # Beta limit applies to toroidal beta
@@ -769,8 +829,10 @@ def constraint_equation_26(constraint_registration, data):
     """Equation for Central Solenoid current density upper limit at EOF
 
     fjohc: margin for central solenoid current at end-of-flattop
-    j_cs_critical_flat_top_end: allowable central solenoid current density at end of flat-top (A/m²)
-    j_cs_flat_top_end: central solenoid overall current density at end of flat-top (A/m²)
+    j_cs_critical_flat_top_end:
+        allowable central solenoid current density at end of flat-top (A/m²)
+    j_cs_flat_top_end:
+        central solenoid overall current density at end of flat-top (A/m²)
     """
     return leq(
         (data.pf_coil.j_cs_flat_top_end / data.pf_coil.j_cs_critical_flat_top_end),
@@ -784,8 +846,10 @@ def constraint_equation_27(constraint_registration, data):
     """Equation for Central Solenoid current density upper limit at BOP
 
     fjohc0: margin for central solenoid current at beginning of pulse
-    j_cs_critical_pulse_start: allowable central solenoid current density at beginning of pulse (A/m²)
-    j_cs_pulse_start: central solenoid overall current density at beginning of pulse (A/m²)
+    j_cs_critical_pulse_start:
+        allowable central solenoid current density at beginning of pulse (A/m²)
+    j_cs_pulse_start:
+        central solenoid overall current density at beginning of pulse (A/m²)
     """
     return leq(
         (data.pf_coil.j_cs_pulse_start / data.pf_coil.j_cs_critical_pulse_start),
@@ -808,7 +872,10 @@ def constraint_equation_28(constraint_registration, data):
     during plasma start-up, and is excluded from all steady-state
     power balance calculations.
     """
-    if data.physics.i_plasma_ignited != 0:
+    if (
+        PlasmaIgnitionModel(data.physics.i_plasma_ignited)
+        != PlasmaIgnitionModel.NON_IGNITED
+    ):
         raise ProcessValueError("Do not use constraint 28 if i_plasma_ignited=1")
 
     return geq(
@@ -851,8 +918,10 @@ def constraint_equation_30(constraint_registration, data):
 def constraint_equation_31(constraint_registration, data):
     """Equation for TF coil case stress upper limit (SCTF)
 
-    sig_tf_case_max: Allowable maximum shear stress in TF coil case (Tresca criterion) (Pa)
-    sig_tf_case: Constrained stress in TF coil case (Pa)
+    sig_tf_case_max:
+        Allowable maximum shear stress in TF coil case (Tresca criterion) (Pa)
+    sig_tf_case:
+        Constrained stress in TF coil case (Pa)
     """
     return leq(
         data.tfcoil.sig_tf_case,
@@ -865,8 +934,10 @@ def constraint_equation_31(constraint_registration, data):
 def constraint_equation_32(constraint_registration, data):
     """Equation for TF coil conduit stress upper limit (SCTF)
 
-    sig_tf_wp_max: Allowable maximum shear stress in TF coil conduit (Tresca criterion) (Pa)
-    sig_tf_wp: Constrained stress in TF conductor conduit (Pa)
+    sig_tf_wp_max:
+        Allowable maximum shear stress in TF coil conduit (Tresca criterion) (Pa)
+    sig_tf_wp:
+        Constrained stress in TF conductor conduit (Pa)
     """
     return leq(
         data.tfcoil.sig_tf_wp,
@@ -913,9 +984,11 @@ def constraint_equation_34(constraint_registration, data):
 def constraint_equation_35(constraint_registration, data):
     """Equation for TF coil J_wp/J_prot upper limit (SCTF)
 
-    j_tf_wp_quench_heat_max: allowable TF coil winding pack current density, for dump temperature
-    rise protection (A/m²)
-    j_tf_wp: winding pack current density (A/m²)
+    j_tf_wp_quench_heat_max:
+        allowable TF coil winding pack current density, for dump temperature
+        rise protection (A/m²)
+    j_tf_wp:
+        winding pack current density (A/m²)
     """
     return leq(
         data.tfcoil.j_tf_wp,
@@ -928,8 +1001,10 @@ def constraint_equation_35(constraint_registration, data):
 def constraint_equation_36(constraint_registration, data):
     """Equation for TF coil s/c temperature margin lower limit (SCTF)
 
-    temp_tf_superconductor_margin: TF coil temperature margin (K)
-    temp_tf_superconductor_margin_min: minimum allowable temperature margin : TF coils (K)
+    temp_tf_superconductor_margin:
+        TF coil temperature margin (K)
+    temp_tf_superconductor_margin_min:
+        minimum allowable temperature margin : TF coils (K)
     """
     return geq(
         data.tfcoil.temp_tf_superconductor_margin,
@@ -956,12 +1031,15 @@ def constraint_equation_37(constraint_registration, data):
 def constraint_equation_39(constraint_registration, data):
     """Equation for first wall temperature upper limit
 
-    temp_fw_max: maximum temperature of first wall material (K) (i_thermal_electric_conversion>1)
-    temp_fw_peak: peak first wall temperature (K)
+    temp_fw_max:
+        maximum temperature of first wall material (K) (i_thermal_electric_conversion>1)
+    temp_fw_peak:
+        peak first wall temperature (K)
     """
     if data.fwbs.temp_fw_peak < 1.0:
         raise ProcessValueError(
-            "temp_fw_peak = 0 implies i_pulsed_plant=0; do not use constraint 39 if i_pulsed_plant=0"
+            "temp_fw_peak = 0 implies i_pulsed_plant=0; do not use constraint 39 "
+            "if i_pulsed_plant=0"
         )
 
     return leq(
@@ -989,8 +1067,10 @@ def constraint_equation_40(constraint_registration, data):
 def constraint_equation_41(constraint_registration, data):
     """Equation for plasma current ramp-up time lower limit
 
-    t_plant_pulse_plasma_current_ramp_up: plasma current ramp-up time for current initiation (s)
-    t_current_ramp_up_min: minimum plasma current ramp-up time (s)
+    t_plant_pulse_plasma_current_ramp_up:
+        plasma current ramp-up time for current initiation (s)
+    t_current_ramp_up_min:
+        minimum plasma current ramp-up time (s)
     """
     return geq(
         data.times.t_plant_pulse_plasma_current_ramp_up,
@@ -1008,7 +1088,8 @@ def constraint_equation_42(constraint_registration, data):
     """
     if data.constraints.t_cycle_min < 1.0:
         raise ProcessValueError(
-            "t_cycle_min = 0 implies that i_pulsed_plant=0; do not use constraint 42 if i_pulsed_plant=0"
+            "t_cycle_min = 0 implies that i_pulsed_plant=0; "
+            "do not use constraint 42 if i_pulsed_plant=0"
         )
 
     return geq(
@@ -1068,12 +1149,16 @@ def constraint_equation_44(constraint_registration, data):
 def constraint_manager_45(constraint_registration, data):
     """Equation for edge safety factor lower limit (TART)
 
-    q95 : safety factor 'near' plasma edge
-    (unless i_plasma_current = 2 (ST current scaling), in which case q = mean edge safety factor qbar)
-    q95_min: lower limit for edge safety factor
-    itart : input integer : switch for spherical tokamak (ST) models:
-    - 0 use conventional aspect ratio models;
-    - 1 use spherical tokamak models
+    q95 :
+        safety factor 'near' plasma edge
+        (unless i_plasma_current = 2 (ST current scaling),
+        in which case q = mean edge safety factor qbar)
+    q95_min:
+        lower limit for edge safety factor
+    itart :
+        input integer : switch for spherical tokamak (ST) models:
+        - 0 use conventional aspect ratio models;
+        - 1 use spherical tokamak models
     """
     if data.physics.itart == 0:
         raise ProcessValueError("Do not use constraint 45 if itart=0")
@@ -1256,11 +1341,16 @@ def constraint_equation_61(constraint_registration, data):
 
 @ConstraintManager.register_constraint(62, "", ">=")
 def constraint_equation_62(constraint_registration, data):
-    """Lower limit on f_t_alpha_energy_confinement the ratio of alpha particle to energy confinement times
+    """Lower limit on f_t_alpha_energy_confinement the ratio of alpha particle
+    to energy confinement times
 
-    t_alpha_confinement: alpha particle confinement time (s)
-    t_energy_confinement: global thermal energy confinement time (sec)
-    f_t_alpha_energy_confinement_min: Lower limit on f_t_alpha_energy_confinement the ratio of alpha particle to energy confinement times
+    t_alpha_confinement:
+        alpha particle confinement time (s)
+    t_energy_confinement:
+        global thermal energy confinement time (sec)
+    f_t_alpha_energy_confinement_min:
+        Lower limit on f_t_alpha_energy_confinement the ratio of alpha particle to
+        energy confinement times
     """
     return geq(
         data.physics.f_t_alpha_energy_confinement,
@@ -1273,8 +1363,10 @@ def constraint_equation_62(constraint_registration, data):
 def constraint_equation_63(constraint_registration, data):
     """Upper limit on n_iter_vacuum_pumps (i_vacuum_pumping = simple)
 
-    tfno: number of TF coils (default = 50 for stellarators)
-    n_iter_vacuum_pumps: number of high vacuum pumps (real number), each with the throughput
+    tfno:
+    number of TF coils (default = 50 for stellarators)
+    n_iter_vacuum_pumps:
+    number of high vacuum pumps (real number), each with the throughput
     """
     return leq(
         data.vacuum.n_iter_vacuum_pumps,
@@ -1316,8 +1408,10 @@ def constraint_equation_65(constraint_registration, data):
 def constrain_equation_66(constraint_registration, data):
     """Upper limit on rate of change of energy in poloidal field
 
-    maxpoloidalpower: Maximum permitted absolute rate of change of stored energy in poloidal field (MW)
-    peakpoloidalpower: Peak absolute rate of change of stored energy in poloidal field (MW) (11/01/16)
+    maxpoloidalpower:
+        Maximum permitted absolute rate of change of stored energy in poloidal field (MW)
+    peakpoloidalpower:
+        Peak absolute rate of change of stored energy in poloidal field (MW) (11/01/16)
     """
     return leq(
         data.pf_power.peakpoloidalpower,
@@ -1344,14 +1438,22 @@ def constraint_equation_67(constraint_registration, data):
 def constraint_equation_68(constraint_registration, data):
     """Upper limit on Psep scaling (PₛₑₚBₜ / q₉₅AR₀)
 
-    p_div_bt_q_aspect_rmajor_max_mw: maximum permitted value of ratio of PₛₑₚBₜ / q₉₅AR₀ (MWT/m)
-    p_plasma_separatrix_mw: Power crossing the separartrix (MW)
-    b_plasma_toroidal_on_axis: toroidal field on axis (T) (iteration variable 2)
-    q95: safety factor q at 95% flux surface
-    aspect: aspect ratio (iteration variable 1)
-    rmajor: plasma major radius (m) (iteration variable 3)
-    i_q95_fixed: Switch that allows for fixing q95 only in this constraint.
-    q95_fixed: fixed safety factor q at 95% flux surface
+    p_div_bt_q_aspect_rmajor_max_mw:
+        maximum permitted value of ratio of PₛₑₚBₜ / q₉₅AR₀ (MWT/m)
+    p_plasma_separatrix_mw:
+        Power crossing the separartrix (MW)
+    b_plasma_toroidal_on_axis:
+        toroidal field on axis (T) (iteration variable 2)
+    q95:
+        safety factor q at 95% flux surface
+    aspect:
+        aspect ratio (iteration variable 1)
+    rmajor:
+        plasma major radius (m) (iteration variable 3)
+    i_q95_fixed:
+        Switch that allows for fixing q95 only in this constraint.
+    q95_fixed:
+        fixed safety factor q at 95% flux surface
     """
     if data.constraints.i_q95_fixed == 1:
         p_div_bt_q_aspect_rmajor_mw = (
@@ -1386,12 +1488,14 @@ def constraint_equation_72(constraint_registration, data):
        into account)
      - CS stress at flux swing (no current in CS) from the TF inward pressure
     This allow to cover the 2 worst stress scenario in the bucked and wedged design
-    Otherwise (free standing TF), the stress limits are only set by the CS stress at max current
+    Otherwise (free standing TF),
+    the stress limits are only set by the CS stress at max current
     Reverse the sign so it works as an inequality constraint (tmp_cc > 0)
-    This will have no effect if it is used as an equality constraint because it will be squared.
+    This will have no effect if it is used as an equality constraint
+    because it will be squared.
 
-    alstroh: allowable hoop stress in Central Solenoid structural material (Pa)
-    s_shear_cs_peak: Maximum shear stress coils/central solenoid (Pa)
+    stress_cs_steel_max: allowable stress in Central Solenoid structural material (Pa)
+    stress_shear_cs_peak: Maximum shear stress coils/central solenoid (Pa)
     sig_tf_cs_bucked: Maximum shear stress in CS case at flux swing (no current in CS)
                           can be significant for the bucked and weged design
     i_tf_bucking: switch for TF structure design
@@ -1403,23 +1507,24 @@ def constraint_equation_72(constraint_registration, data):
     ):
         return leq(
             max(
-                data.pf_coil.s_shear_cs_peak,
+                data.pf_coil.stress_shear_cs_peak,
                 data.tfcoil.sig_tf_cs_bucked,
             ),
-            data.pf_coil.alstroh,
+            data.pf_coil.stress_cs_steel_max,
             constraint_registration,
         )
     # Free standing CS
     return leq(
-        data.pf_coil.s_shear_cs_peak,
-        data.pf_coil.alstroh,
+        data.pf_coil.stress_shear_cs_peak,
+        data.pf_coil.stress_cs_steel_max,
         constraint_registration,
     )
 
 
 @ConstraintManager.register_constraint(73, "MW", ">=")
 def constraint_equation_73(constraint_registration, data):
-    """Lower limit to ensure separatrix power is greater than the L-H power + auxiliary power
+    """Lower limit to ensure separatrix power is greater than the L-H power +
+    auxiliary power
     Related to constraint 15
 
     p_l_h_threshold_mw: L-H mode power threshold (MW)
@@ -1470,13 +1575,20 @@ def constraint_equation_76(constraint_registration, data):
     Eich critical separatrix density model
     Added for issue 558 with ref to http://iopscience.iop.org/article/10.1088/1741-4326/aaa340/pdf
 
-    alpha_crit: critical ballooning parameter value
-    nd_plasma_separatrix_electron_eich_max: critical electron density at separatrix [/m³]
-    kappa: plasma separatrix elongation (calculated if i_plasma_geometry = 1-5, 7 or 9)
-    triang: plasma separatrix triangularity (calculated if i_plasma_geometry = 1, 3-5 or 7)
-    aspect: aspect ratio (iteration variable 1)
-    p_plasma_separatrix_mw: power to conducted to the divertor region (MW)
-    nd_plasma_electron_max_array(7)array : density limit [/m³] as calculated using various models
+    alpha_crit:
+        critical ballooning parameter value
+    nd_plasma_separatrix_electron_eich_max:
+        critical electron density at separatrix [/m³]
+    kappa:
+        plasma separatrix elongation (calculated if i_plasma_geometry = 1-5, 7 or 9)
+    triang:
+        plasma separatrix triangularity (calculated if i_plasma_geometry = 1, 3-5 or 7)
+    aspect:
+        aspect ratio (iteration variable 1)
+    p_plasma_separatrix_mw:
+        power to conducted to the divertor region (MW)
+    nd_plasma_electron_max_array(7)array :
+        density limit [/m³] as calculated using various models
     """
     # TODO: why on earth are these variables being set here!? Should they be local?
     data.physics.alpha_crit = (data.physics.kappa**1.2) * (
@@ -1530,10 +1642,15 @@ def constraint_equation_78(constraint_registration, data):
 def constraint_equation_79(constraint_registration, data):
     """Equation for maximum CS field
 
-    b_cs_limit_max: Central solenoid max field limit [T]
-    b_cs_peak_pulse_start: maximum field in central solenoid at beginning of pulse (T)
-    b_cs_peak_flat_top_end: maximum field in central solenoid at end of flat-top (EoF) (T)
-    (Note: original code has "b_cs_peak_flat_top_end/b_cs_peak_pulse_start |  peak CS field [T]".)
+    b_cs_limit_max:
+        Central solenoid max field limit [T]
+    b_cs_peak_pulse_start:
+        maximum field in central solenoid at beginning of pulse (T)
+    b_cs_peak_flat_top_end:
+        maximum field in central solenoid at end of flat-top (EoF) (T)
+
+    (Note: original code has
+    "b_cs_peak_flat_top_end/b_cs_peak_pulse_start |  peak CS field [T]".)
     """
     return leq(
         max(
@@ -1549,12 +1666,18 @@ def constraint_equation_79(constraint_registration, data):
 def constraint_equation_80(constraint_registration, data):
     """Equation for p_plasma_separatrix_mw lower limit
 
-    args : output structure : residual error; constraint value; residual error in physical units;
-    output string; units string
+    args :
+        output structure :
+            residual error;
+            constraint value;
+            residual error in physical units;
+            output string; units string
     Lower limit p_plasma_separatrix_mw
 
-    p_plasma_separatrix_min_mw : input : Minimum power crossing separatrix p_plasma_separatrix_mw [MW]
-    p_plasma_separatrix_mw : input : Power crossing separatrix [MW]
+    p_plasma_separatrix_min_mw :
+        Minimum power crossing separatrix p_plasma_separatrix_mw [MW]
+    p_plasma_separatrix_mw :
+        Power crossing separatrix [MW]
     """
     return geq(
         data.physics.p_plasma_separatrix_mw,
@@ -1599,8 +1722,10 @@ def constraint_equation_82(constraint_registration, data):
 def constraint_equation_83(constraint_registration, data):
     """Equation for radial consistency of stellarator build
 
-    available_radial_space: avaible space in radial direction as given by each s.-configuration
-    required_radial_space: required space in radial direction
+    available_radial_space:
+        avaible space in radial direction as given by each s.-configuration
+    required_radial_space:
+        required space in radial direction
     """
     return geq(
         data.build.available_radial_space,
@@ -1700,7 +1825,8 @@ def constraint_equation_88(constraint_registration, data):
 
 @ConstraintManager.register_constraint(89, "A/m²", "<=")
 def constraint_equation_89(constraint_registration, data):
-    """Upper limit to ensure that the Central Solenoid [OH] coil current / copper area < Maximum value
+    """Upper limit to ensure that the Central Solenoid [OH]
+     coil current / copper area < Maximum value
 
     copperaoh_m2: CS coil current at EOF / copper area [A/m²]
     copperaoh_m2_max: maximum coil current / copper area [A/m²]
@@ -1732,14 +1858,18 @@ def constraint_equation_90(constraint_registration, data):
 @ConstraintManager.register_constraint(91, "MW", ">=")
 def constraint_equation_91(constraint_registration, data):
     """Lower limit to ensure ECRH te is greater than required te for ignition
-    at lower values for n and B. Or if the design point is ECRH heatable (if i_plasma_ignited==0)
+    at lower values for n and B. Or if the design point is ECRH heatable
+    (if i_plasma_ignited==0)
     stellarators only (but in principle usable also for tokamaks).
 
     max_gyrotron_frequency: Max. av. gyrotron frequency
     te0_ecrh_achievable: Max. achievable electron temperature at ignition point
     """
     # Achievable ECRH te needs to be larger than needed te for igntion
-    if data.physics.i_plasma_ignited == 0:
+    if (
+        PlasmaIgnitionModel(data.physics.i_plasma_ignited)
+        == PlasmaIgnitionModel.NON_IGNITED
+    ):
         value = (
             data.stellarator.powerht_constraint
             + data.current_drive.p_hcd_primary_extra_heat_mw
@@ -1814,7 +1944,8 @@ def constraint_eqns(m: int, ieqn: int, data: DataStructure):
             raise ProcessValueError(error_msg, cc=tmp_cc)
 
         # Reverse the sign so it works as an inequality constraint (cc(i) > 0)
-        # This will have no effect if it is used as an equality constraint because it will be squared.
+        # This will have no effect if it is used as an equality constraint
+        # because it will be squared.
         cc.append(-tmp_cc)
         con.append(tmp_con)
         err.append(tmp_err)

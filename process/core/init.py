@@ -16,6 +16,7 @@ from process.core.solver import iteration_variables
 from process.core.solver.constraints import ConstraintManager
 from process.data_structure.blanket_variables import BlktModelTypes
 from process.data_structure.build_variables import (
+    CSPrecompressionConfiguration,
     InboardBlanketConfiguration,
     TFCSRadialConfiguration,
 )
@@ -27,6 +28,7 @@ from process.data_structure.physics_variables import (
     ConfinementTimeModel,
     DivertorNumberModels,
 )
+from process.data_structure.superconducting_tf_coil_variables import TFWPIntegerTurnType
 from process.models.pfcoil import PFLocationTypes
 from process.models.physics.profiles import (
     DensityProfilePedestalType,
@@ -210,23 +212,23 @@ def run_summary(data: DataStructure):
     # MFile #
     mfile = constants.MFILE
 
-    process_output.ovarst(mfile, "PROCESS version", "(procver)", f'"{version}"')
-    process_output.ovarst(mfile, "Date of run", "(date)", f'"{date_string}"')
-    process_output.ovarst(mfile, "Time of run", "(time)", f'"{time_string}"')
-    process_output.ovarst(mfile, "User", "(username)", f'"{user}"')
-    process_output.ovarst(mfile, "PROCESS run title", "(runtitle)", f'"{runtitle}"')
-    process_output.ovarst(mfile, "PROCESS git tag", "(tagno)", f'"{git_tag}"')
-    process_output.ovarst(
+    process_output.ovarre(mfile, "PROCESS version", "(procver)", f'"{version}"')
+    process_output.ovarre(mfile, "Date of run", "(date)", f'"{date_string}"')
+    process_output.ovarre(mfile, "Time of run", "(time)", f'"{time_string}"')
+    process_output.ovarre(mfile, "User", "(username)", f'"{user}"')
+    process_output.ovarre(mfile, "PROCESS run title", "(runtitle)", f'"{runtitle}"')
+    process_output.ovarre(mfile, "PROCESS git tag", "(tagno)", f'"{git_tag}"')
+    process_output.ovarre(
         mfile, "PROCESS git branch", "(branch_name)", f'"{git_branch}"'
     )
-    process_output.ovarst(mfile, "Input filename", "(fileprefix)", f'"{fileprefix}"')
+    process_output.ovarre(mfile, "Input filename", "(fileprefix)", f'"{fileprefix}"')
 
-    process_output.ovarin(
+    process_output.ovarre(
         mfile, "Optimisation switch", "(ioptimz)", data.numerics.ioptimz
     )
     # If optimising, write figure of merit switch
     if data.numerics.ioptimz == PROCESSRunMode.OPTIMISATION:
-        process_output.ovarin(
+        process_output.ovarre(
             mfile, "Figure of merit switch", "(minmax)", data.numerics.minmax
         )
 
@@ -263,11 +265,11 @@ def check_process(inputs, data):  # noqa: ARG001
             "Iteration variables 13 and 140 cannot be used simultaneously",
         )
 
-    # Can't use c_tf_turn as interation var, constraint or
+    # Can't use c_tf_turn as iteration var, constraint or
     # input if i_tf_turns_integer == 1
-    if (
-        data.numerics.ixc[: data.numerics.nvar] == 60
-    ).any() and data.tfcoil.i_tf_turns_integer == 1:
+    if (data.numerics.ixc[: data.numerics.nvar] == 60).any() and TFWPIntegerTurnType(
+        data.tfcoil.i_tf_turns_integer
+    ) == TFWPIntegerTurnType.INTEGER:
         raise ProcessValidationError(
             "Iteration variable 60 (TF current per turn, c_tf_turn) cannot be used with"
             " the TF coil integer turn model (i_tf_turns_integer == 1) as it is a"
@@ -334,7 +336,7 @@ def check_process(inputs, data):  # noqa: ARG001
     if data.impurity_radiation.f_nd_impurity_electrons[1] != 0.1:  # noqa: RUF069
         raise ProcessValidationError(
             "The thermal alpha/electron density ratio should be controlled using"
-            " f_nd_alpha_electron (itv 109) and not f_nd_impurity_electrons(2)."
+            " f_nd_alpha_thermal_electron (itv 109) and not f_nd_impurity_electrons(2)."
             "f_nd_impurity_electrons(2) should be removed from the input file,"
             " or set to the default value 0.1D0."
         )
@@ -437,13 +439,19 @@ def check_process(inputs, data):  # noqa: ARG001
                 "Density pedestal is lower than separatrix density",
                 **(
                     {
-                        "nd_plasma_pedestal_electron": data.physics.nd_plasma_pedestal_electron,
-                        "nd_plasma_separatrix_electron": data.physics.nd_plasma_separatrix_electron,
+                        k: getattr(data.physics, k)
+                        for k in (
+                            "nd_plasma_pedestal_electron",
+                            "nd_plasma_separatrix_electron",
+                        )
                     }
                     if pedestal_type == DensityProfilePedestalType.USER_INPUT
                     else {
-                        "f_nd_plasma_pedestal_greenwald": data.physics.f_nd_plasma_pedestal_greenwald,
-                        "f_nd_plasma_separatrix_greenwald": data.physics.f_nd_plasma_separatrix_greenwald,
+                        k: getattr(data.physics, k)
+                        for k in (
+                            "f_nd_plasma_pedestal_greenwald",
+                            "f_nd_plasma_separatrix_greenwald",
+                        )
                     }
                 ),
             )
@@ -573,7 +581,7 @@ def check_process(inputs, data):  # noqa: ARG001
             data.pf_coil.i_pf_location[1] = PFLocationTypes.OUTSIDE_TF
             data.pf_coil.i_pf_location[2] = PFLocationTypes.OUTSIDE_TF
 
-        # Water cooled copper magnets initalisation / checks
+        # Water cooled copper magnets initialisation / checks
         if data.tfcoil.i_tf_sup == TFConductorModel.WATER_COOLED_COPPER:
             # Check if the initial centrepost coolant loop adapted to the
             # magnet technology
@@ -610,7 +618,7 @@ def check_process(inputs, data):  # noqa: ARG001
                 stacklevel=2,
             )
 
-        # Aluminium magnets initalisation / checks
+        # Aluminium magnets initialisation / checks
         # Initialize the CP conductor temperature to cryogenic temperature for
         # cryo-al magnets (20 K)
         elif data.tfcoil.i_tf_sup == TFConductorModel.HELIUM_COOLED_ALUMINIUM:
@@ -821,7 +829,11 @@ def check_process(inputs, data):  # noqa: ARG001
 
     # Ensure that no pre-compression structure
     # is used for bucked and wedged design
-    if data.tfcoil.i_tf_bucking >= 2 and data.build.i_cs_precomp == 1:
+    if (
+        data.tfcoil.i_tf_bucking >= 2
+        and CSPrecompressionConfiguration(data.build.i_cs_precomp)
+        == CSPrecompressionConfiguration.CS_PRECOMPRESSION_STRUCTURE_PRESENT
+    ):
         raise ProcessValidationError(
             "No CS precompression structure for bucked and wedged, use i_cs_precomp = 0"
         )
@@ -860,7 +872,8 @@ def check_process(inputs, data):  # noqa: ARG001
 
     if (
         data.tfcoil.i_tf_sc_mat == SuperconductorModel.CROCO_REBCO
-        and data.tfcoil.i_tf_turns_integer == 1
+        and TFWPIntegerTurnType(data.tfcoil.i_tf_turns_integer)
+        == TFWPIntegerTurnType.INTEGER
     ):
         raise ProcessValidationError(
             "Integer turns (i_tf_turns_integer = 1) not supported for REBCO"
@@ -887,9 +900,15 @@ def check_process(inputs, data):  # noqa: ARG001
     # Setting the default WP geometry
     i_tf_wp_geom = SuperconductingTFWPShapeType(data.tfcoil.i_tf_wp_geom)
     if i_tf_wp_geom == SuperconductingTFWPShapeType.UNSET:
-        if data.tfcoil.i_tf_turns_integer == 0:
+        if (
+            TFWPIntegerTurnType(data.tfcoil.i_tf_turns_integer)
+            == TFWPIntegerTurnType.NON_INTEGER
+        ):
             data.tfcoil.i_tf_wp_geom = SuperconductingTFWPShapeType.DOUBLE_RECTANGULAR
-        if data.tfcoil.i_tf_turns_integer == 1:
+        if (
+            TFWPIntegerTurnType(data.tfcoil.i_tf_turns_integer)
+            == TFWPIntegerTurnType.INTEGER
+        ):
             data.tfcoil.i_tf_wp_geom = SuperconductingTFWPShapeType.RECTANGULAR
 
     # Setting the TF coil conductor elastic properties
@@ -978,7 +997,11 @@ def check_process(inputs, data):  # noqa: ARG001
     data.tfcoil.i_dx_tf_turn_general_input = abs(data.tfcoil.dx_tf_turn_general) > 0
 
     # Impossible to set the turn size of integer turn option
-    if data.tfcoil.i_dx_tf_turn_general_input and data.tfcoil.i_tf_turns_integer == 1:
+    if (
+        data.tfcoil.i_dx_tf_turn_general_input
+        and TFWPIntegerTurnType(data.tfcoil.i_tf_turns_integer)
+        == TFWPIntegerTurnType.INTEGER
+    ):
         raise ProcessValidationError(
             "Impossible to set the TF turn/cable size with the integer turn option"
             " (i_tf_turns_integer: 1)"
@@ -986,7 +1009,8 @@ def check_process(inputs, data):  # noqa: ARG001
 
     if (
         data.tfcoil.i_tf_wp_geom != SuperconductingTFWPShapeType.RECTANGULAR
-        and data.tfcoil.i_tf_turns_integer == 1
+        and TFWPIntegerTurnType(data.tfcoil.i_tf_turns_integer)
+        == TFWPIntegerTurnType.INTEGER
     ):
         raise ProcessValidationError(
             "Can only have i_tf_turns_integer = 1 with i_tf_wp_geom = 0"
@@ -1007,7 +1031,8 @@ def check_process(inputs, data):  # noqa: ARG001
     # Impossible to set the cable size of integer turn option
     if (
         data.tfcoil.i_dx_tf_turn_cable_space_general_input
-        and data.tfcoil.i_tf_turns_integer == 1
+        and TFWPIntegerTurnType(data.tfcoil.i_tf_turns_integer)
+        == TFWPIntegerTurnType.INTEGER
     ):
         raise ProcessValidationError(
             "Impossible to set the TF turn/cable size with the integer turn option"

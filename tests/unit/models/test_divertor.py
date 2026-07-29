@@ -2,6 +2,8 @@
 
 import pytest
 
+from process.data_structure.divertor_variables import DivertorHeatLoadModel
+
 
 @pytest.fixture
 def divertor(process_models):
@@ -18,7 +20,8 @@ class TestDivertor:
     def test_divtart(monkeypatch, divertor):
         """Test the divtart subroutine.
 
-        Uses test data from the second call of this subroutine by FNSF regression test.
+        Uses test data from the second call of this subroutine by
+        FNSF regression test (no longer exists in the PROCESS repository).
 
         :param monkeypatch: pytest mocking fixture
         :type monkeypatch: object
@@ -37,7 +40,9 @@ class TestDivertor:
         p_plasma_separatrix_mw = 7.7197999809272062
         i_single_null = 0
         dz_divertor = 0.5
-        monkeypatch.setattr(divertor.data.divertor, "i_div_heat_load", 1)
+        monkeypatch.setattr(
+            divertor.data.divertor, "i_div_heat_load", DivertorHeatLoadModel.PENG_CHAMBER
+        )
 
         expected_pflux_div_heat_load_mw = 0.087770426974167357
 
@@ -59,7 +64,8 @@ class TestDivertor:
     def test_divwade(monkeypatch, divertor):
         """Test the divwade subroutine.
 
-        Uses test data from the second call of this subroutine by FNSF regression test.
+        Uses test data from the second call of this subroutine by
+        FNSF regression test (no longer exists in the PROCESS repository).
 
         :param monkeypatch: pytest mocking fixture
         :type monkeypatch: object

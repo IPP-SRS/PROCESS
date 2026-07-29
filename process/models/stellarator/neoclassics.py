@@ -180,7 +180,7 @@ class Neoclassics(Model):
             * (1 - rho**2) ** self.data.physics.alphan
         )
         densa = (
-            self.data.physics.nd_plasma_alphas_vol_avg
+            self.data.physics.nd_plasma_alphas_thermal_vol_avg
             * (1 + self.data.physics.alphan)
             * (1 - rho**2) ** self.data.physics.alphan
         )
@@ -261,7 +261,7 @@ class Neoclassics(Model):
             * 1.0
             / self.data.physics.rminor
             * rho
-            * self.data.physics.nd_plasma_alphas_vol_avg
+            * self.data.physics.nd_plasma_alphas_thermal_vol_avg
             * (1 + self.data.physics.alphan)
             * (1.0 - rho**2) ** (self.data.physics.alphan - 1.0)
             * self.data.physics.alphan
@@ -277,7 +277,8 @@ class Neoclassics(Model):
     def calc_neoclassics(self):
         if self.data.stellarator_config.stella_config_epseff < 0:
             logger.error(
-                f"epseff value lower than 0:  {self.data.stellarator_config.stella_config_epseff}"
+                "epseff value lower than 0: "
+                f"{self.data.stellarator_config.stella_config_epseff}"
             )
         self.init_neoclassics(
             0.6,
@@ -442,7 +443,8 @@ class Neoclassics(Model):
         z = np.array([-1.0, 1.0, 1.0, 2.0]) * constants.ELECTRON_CHARGE
 
         # transform the temperature back in eV
-        # Formula from L. Spitzer.Physics of fully ionized gases.  Interscience, New York, 1962
+        # Formula from L. Spitzer.Physics of fully ionized gases.
+        # Interscience, New York, 1962
         lnlambda = (
             32.2
             - 1.15 * np.log10(self.data.neoclassics.densities[0])
@@ -550,7 +552,7 @@ class Neoclassics(Model):
             * self.data.physics.f_plasma_fuel_deuterium,
             self.data.physics.nd_plasma_fuel_ions_vol_avg
             * (1 - self.data.physics.f_plasma_fuel_deuterium),
-            self.data.physics.nd_plasma_alphas_vol_avg,
+            self.data.physics.nd_plasma_alphas_thermal_vol_avg,
         ])
 
         mass = np.array([
@@ -562,7 +564,8 @@ class Neoclassics(Model):
         z = np.array([-1.0, 1.0, 1.0, 2.0]) * constants.ELECTRON_CHARGE
 
         # transform the temperature back in eV
-        # Formula from L. Spitzer.Physics of fully ionized gases.  Interscience, New York, 1962
+        # Formula from L. Spitzer.Physics of fully ionized gases.
+        # Interscience, New York, 1962
         lnlambda = (
             32.2
             - 1.15 * np.log10(density[0])

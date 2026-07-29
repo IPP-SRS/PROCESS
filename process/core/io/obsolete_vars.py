@@ -1,4 +1,5 @@
-"""Dict of obsolete vars and their new names for the input validator, and dict of help messages for certain obsolete vars.
+"""Dict of obsolete vars and their new names for the input validator,
+and dict of help messages for certain obsolete vars.
 
 This is used by the input_validator module to find any obsolete variables in the
 input file (which have since been renamed in the current version of the source).
@@ -155,7 +156,7 @@ OBS_VARS = {
     "nimp": "n_impurities",
     "ssync": "f_sync_reflect",
     "rnbeam": "f_nd_beam_electron",
-    "ralpne": "f_nd_alpha_electron",
+    "ralpne": "f_nd_alpha_thermal_electron",
     "protium": "f_nd_protium_electrons",
     "clhsf": "f_z_cryostat",
     "ddwex": "dr_cryostat",
@@ -209,7 +210,6 @@ OBS_VARS = {
     "tfwmatmax": "temp_fw_max",
     "fw_channel_length": "len_fw_channel",
     "denw": None,
-    "s_tresca_oh": "s_shear_cs_peak",
     "sig_tf_tresca_max": "s_shear_tf_peak",
     "s_tresca_cond_cear": "s_shear_cea_tf_cond",
     "sig_tf_tresca": "s_shear_tf",
@@ -469,15 +469,27 @@ OBS_VARS = {
     "psepbqarmax": "p_div_bt_q_aspect_rmajor_max_mw",
     "fdene": "f_nd_plasma_electron_limit_max",
     "fiooic": "f_j_tf_wp_critical_max",
+    "alstroh": "stress_cs_steel_max",
+    "i_cs_stress": None,
+    "f_nd_alpha_electron": "f_nd_alpha_thermal_electron",
+    "cost_model": "i_cost_model",
 }
 
 OBS_VARS_HELP = {
     "iculdl": "(use IDENSL=3 for equivalent model to ICULDL=0). ",
-    "dz_blkt_upper": "WARNING. BLNKTTH is now always calculated rather than input - please remove it from the input file. ",
-    "iprofile": "Use i_beta_norm_max, i_alphaj and i_ind_plasma_internal_norm instead. See docs for setup. ",
+    "dz_blkt_upper": (
+        "WARNING. "
+        "BLNKTTH is now always calculated rather than input - "
+        "please remove it from the input file. "
+    ),
+    "iprofile": (
+        "Use i_beta_norm_max, i_alphaj and i_ind_plasma_internal_norm instead. "
+        "See docs for setup. "
+    ),
     "fl_h_threshold": (
         "fl_h_threshold has been replaced by f_h_mode_margin/f_l_mode_margin"
-        " please check the docstring for constraint 15/22 to find the appropriate variable"
+        " please check the docstring for constraint 15/22 to "
+        "find the appropriate variable"
     ),
 }
 
@@ -504,7 +516,10 @@ kallenbach_list = [
     "mach0",
     "neratio",
 ]
-kallenbach_message = "The Kallenbach model is currently not included in PROCESS. See issue #1886 for more information on the use of the Kallenbach model. "
+kallenbach_message = (
+    "The Kallenbach model is currently not included in PROCESS. "
+    "See issue #1886 for more information on the use of the Kallenbach model. "
+)
 OBS_VARS.update(dict.fromkeys(kallenbach_list, None))
 OBS_VARS_HELP.update(dict.fromkeys(kallenbach_list, kallenbach_message))
 

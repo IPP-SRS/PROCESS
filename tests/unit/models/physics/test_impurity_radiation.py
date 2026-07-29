@@ -8,7 +8,7 @@ import pytest
 from process.models.physics import impurity_radiation
 
 
-@pytest.fixture(autouse=True)  # noqa: RUF076
+@pytest.fixture(autouse=True)
 def initialise_impurity_radiation(process_models):
     impurity_radiation.initialise_imprad(process_models.physics.data)
 
@@ -35,7 +35,7 @@ def test_pimpden(process_models):
     :param expected_pimpden: Total impurity radiation density (W/m3)
     :type expected_pimpden: float
     """
-    pimden_parameters = PimpdenParam(
+    pimpden_parameters = PimpdenParam(
         imp_element_index=0,
         ne=np.array([
             9.42593370e19,
@@ -75,13 +75,13 @@ def test_pimpden(process_models):
         ]),
     )
 
-    pimpden = impurity_radiation.pimpden(
-        pimden_parameters.imp_element_index,
-        pimden_parameters.ne,
-        pimden_parameters.te,
+    pimpden = impurity_radiation.calculate_impurity_radiation_power_density(
+        pimpden_parameters.imp_element_index,
+        pimpden_parameters.ne,
+        pimpden_parameters.te,
         process_models.physics.data,
     )
-    assert pytest.approx(pimpden) == pimden_parameters.expected_pimpden
+    assert pytest.approx(pimpden) == pimpden_parameters.expected_pimpden
 
 
 class FradcoreParam(NamedTuple):
@@ -91,7 +91,7 @@ class FradcoreParam(NamedTuple):
     expected_fradcore: np.array = np.array
 
 
-def test_fradcore():
+def test_create_f_rad_core_profile():
     """Tests `fradcore` function.
 
     :param rho: normalised minor radius
@@ -121,7 +121,7 @@ def test_fradcore():
             0.0,
         ]),
     )
-    fradcore = impurity_radiation.fradcore(
+    fradcore = impurity_radiation.create_f_rad_core_profile(
         fradcoreparam.rho,
         fradcoreparam.radius_plasma_core_norm,
         fradcoreparam.f_p_plasma_core_rad_reduction,
@@ -174,7 +174,7 @@ def test_zav_of_te(process_models):
             1.00000000000001,
         ]),
     )
-    zav_of_te = impurity_radiation.zav_of_te(
+    zav_of_te = impurity_radiation.calculate_average_charge_at_temp(
         zavofteparam.imp_element_index, zavofteparam.te, process_models.physics.data
     )
 

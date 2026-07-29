@@ -181,11 +181,16 @@ def jcrit_rebco(
     -------
     tuple[float, bool, float, float]
         A tuple containing:
-        - j_critical: Critical current density in the superconductor (A/m²).
-        - validity: A boolean indicating whether the input parameters are within the
-                    valid range.
-        - b_c20max: Upper critical field (T) for the superconductor at zero temperature and strain.
-        - temp_c0max: Critical temperature (K) at zero field and strain.
+        - j_critical:
+            Critical current density in the superconductor (A/m²).
+        - validity:
+            A boolean indicating whether the input parameters are within the
+            valid range.
+        - b_c20max:
+            Upper critical field (T) for the superconductor
+            at zero temperature and strain.
+        - temp_c0max:
+            Critical temperature (K) at zero field and strain.
 
     Notes
     -----
@@ -1029,7 +1034,9 @@ def bottura_scaling(
     # If input field is over the strain adjusted critical field then report error
     if b_conductor / b_c20_eps >= 1.0:
         logger.error(
-            "Reduced field bzero artificially lowered %s %s", b_conductor, b_c20_eps
+            "Reduced field bzero artificially lowered b_conductor=%s b_c20_eps=%s",
+            b_conductor,
+            b_c20_eps,
         )
 
     # Reduced field at zero temperature, taking account of strain

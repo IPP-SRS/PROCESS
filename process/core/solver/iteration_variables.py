@@ -1,12 +1,16 @@
+from __future__ import annotations
+
 import logging
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
 from process.core.exceptions import ProcessValueError
-from process.core.model import DataStructure
+
+if TYPE_CHECKING:
+    from process.core.model import DataStructure
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +96,7 @@ ITERATION_VARIABLES = {
     98: IterationVariable("f_blkt_li6_enrichment", "fwbs", 10.00, 100.0),
     104: IterationVariable("fcwr", "constraints", 0.001, 1.0),
     108: IterationVariable("breeder_f", "fwbs", 0.060, 1.0),
-    109: IterationVariable("f_nd_alpha_electron", "physics", 0.05, 0.15),
+    109: IterationVariable("f_nd_alpha_thermal_electron", "physics", 0.05, 0.15),
     114: IterationVariable("len_fw_channel", "fwbs", 0.001, 1.0e3),
     119: IterationVariable("temp_plasma_separatrix_kev", "physics", 0.0, 1.0e1),
     122: IterationVariable("f_a_cs_turn_steel", "pf_coil", 0.001, 0.950),
@@ -230,11 +234,13 @@ ITERATION_VARIABLES = {
     174: IterationVariable("triang", "physics", 0.00, 1.00),
     175: IterationVariable("kappa", "physics", 0.00, 10.00),
     176: IterationVariable("f_st_coil_aspect", "stellarator", 0.70, 1.30),
+    177: IterationVariable("f_a_tf_turn_cable_space_extra_void", "tfcoil", 0.01, 1.0),
 }
 
 
 def check_iteration_variable(iteration_variable_value, name: str = ""):
-    """Check that the iteration variable value is valid (not a weird number or too small).
+    """Check that the iteration variable value is valid
+    (not a weird number or too small).
 
     Raises an error upon encountering an invalid value, otherwise does nothing.
 
@@ -259,12 +265,15 @@ def check_iteration_variable(iteration_variable_value, name: str = ""):
 
 
 def load_iteration_variables(data):
-    """Loads the physics and engineering variables into the optimisation variable array."""
+    """
+    Loads the physics and engineering variables into the optimisation variable array.
+    """
     for i in range(data.numerics.nvar):
         variable_index = data.numerics.ixc[i]
         iteration_variable = ITERATION_VARIABLES[variable_index]
 
-        # use ... as the default return value because None might be a valid return from Fortran?
+        # use ... as the default return value because
+        # None might be a valid return from Fortran?
 
         module = (
             getattr(data, iteration_variable.module)
@@ -328,7 +337,7 @@ def load_iteration_variables(data):
 
 
 def set_scaled_iteration_variable(xc, nn: int, data: DataStructure):
-    """Converts scaled iteration variables back to their real values and sets them in the code.
+    """Converts scaled iteration variables back to their real values and sets them.
 
     Parameters
     ----------

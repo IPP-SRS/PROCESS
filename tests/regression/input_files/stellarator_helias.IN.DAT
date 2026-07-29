@@ -1,6 +1,6 @@
 *************************************************************************
 *****                                                               *****
-*****                     Stellartor test                           *****
+*****                     Stellarator test                           *****
 *****               Jedrzej Walkowiak (16/02/2026)                  *****
 *****            Based on Felix Warmer Run (27/05/2015)             *****
 *****   Warmer et al. (2016), IEEE Trans. Plasma Sci. 44, 1576      *****
@@ -12,12 +12,12 @@
 neqns = 2               *number of equalities
 
 
-*--------------- equaltities
+*--------------- equalities
 icc = 2                 *Global power balance (consistency equation)
 icc = 16                *Net electric power lower limit
 p_plant_electric_net_required_mw = 1000         * Required net electric power (MW)
 
-*-------------- inequaltities
+*-------------- inequalities
 
 * Beta limit
 icc = 24                *Upper beta limit
@@ -100,7 +100,7 @@ boundu(10) = 1.2
 * ixc = 50                * itv_fiooic
 f_j_tf_wp_critical_max = 0.8
 
-ixc = 109 * f_nd_alpha_electron: thermal alpha density / electron density
+ixc = 109 * f_nd_alpha_thermal_electron: thermal alpha density / electron density
 boundl(109) = 0.0001
 boundu(109) = 0.4
 
@@ -110,7 +110,7 @@ boundu(59) = 0.9
 boundl(59) = 0.3
 
 ixc = 56 * itv_tdmptf Fast Discharge Time For TF Coil In Event Of Quench (S) (`Iteration Variable 56`)
-t_tf_superconductor_quench = 10.0
+t_tf_superconductor_quench = 35.0
 boundl(56) = 1
 boundu(56) = 50.
 
@@ -227,14 +227,14 @@ f_nd_impurity_electrons(14) = 1.0E-5       *Tungsten
 ioptimz  = 1            *Code operation switch (1: Optimisation, VMCON only)
 maxcal   = 100          *Maximum number of VMCON iterations
 minmax   = 6            *Switch for figure-of-merit (7: Min Capital Cost)
-epsfcn   = 0.001
+epsfcn   = 0.01         *Default for this parameter is 1e-3 however this specific IN.DAT and starting point benefit from a larger step length
 runtitle = SQuID
 
 *-----------------Tfcoil Variables-----------------*
 
 i_tf_sc_mat = 1         * Switch for superconductor material in tf coils (1: ITER Nb3Sn)
 tftmp     = 4.5         * Peak helium coolant temperature in TF coils and PF coils (K)
-tmargmin = 1.5          * Temperature margin for superconductor current denisty calculation (K)
+tmargmin = 1.5          * Temperature margin for superconductor current density calculation (K)
 temp_tf_cryo = 4.5      * Coil temperature for cryogenic plant power calculation (K)
 dx_tf_turn_general = 0.056                * Dimension conductor area including steel and insulation.
 dx_tf_turn_insulation = 0.002             * Conduit insulation thickness (m)
@@ -245,7 +245,7 @@ dx_tf_wp_insulation = 0.01                * Insulation on top of winding pack
 t_tf_quench_detection = 0.5               * Quench detection+activation time (or dump delay) (s)
 
 *------------------Cost Variables------------------*
-cost_model = 0          *0: 1990 cost module, the 2015 does not work yet for stellarators
+i_cost_model = 0          *0: 1990 cost module, the 2015 does not work yet for stellarators
 abktflnc = 15.0         *Allowable first wall/blanket neutron (MW-yr/m2)
 adivflnc = 25.0         *Allowable divertor heat fluence (MW-yr/m2)
 f_t_plant_available   = 0.75         *Total plant capacity fraction

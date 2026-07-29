@@ -24,8 +24,13 @@ from process.data_structure.impurity_radiation_variables import N_IMPURITIES
 from process.data_structure.numerics import FiguresOfMerit, PROCESSRunMode
 from process.data_structure.pfcoil_variables import NFIXMX
 from process.data_structure.physics_variables import ConfinementTimeModel
+from process.data_structure.superconducting_tf_coil_variables import TFWPIntegerTurnType
 from process.models.build import Build
-from process.models.engineering.materials import poisson_steel
+from process.models.engineering.materials import (
+    calculate_tresca_stress,
+    calculate_von_mises_stress,
+    poisson_steel,
+)
 from process.models.geometry.blanket import (
     blanket_geometry_double_null,
     blanket_geometry_single_null,
@@ -49,10 +54,11 @@ from process.models.geometry.vacuum_vessel import (
     vacuum_vessel_geometry_double_null,
     vacuum_vessel_geometry_single_null,
 )
-from process.models.pfcoil import CSCoil
+from process.models.pfcoil import N_CS_STRESS_PROFILE_POINTS, CSCoil
 from process.models.physics.bootstrap_current import BootstrapCurrentFractionModel
 from process.models.physics.confinement_time import PlasmaConfinementTime
 from process.models.physics.current_drive import (
+    CurrentDriveMethodType,
     CurrentDriveModel,
     ElectronBernstein,
     ElectronCyclotron,
@@ -97,7 +103,7 @@ class RadialBuild:
     cumulative_radial: dict[str, float]
 
 
-# Colours are PROCESS defualt, BLUEMIRA
+# Colours are PROCESS default, BLUEMIRA
 SOLENOID_COLOUR = ["pink", "#1764ab"]
 CSCOMPRESSION_COLOUR = ["maroon", "#33CCCC"]
 TFC_COLOUR = ["cyan", "#084a91"]
@@ -185,7 +191,7 @@ def plot_plasma(
     mirror_negative_x :
         if True, mirror the plot to the negative x-axis (Default value = False)
     """
-    (r_0, a, triang, kappa, i_single_null, i_plasma_shape, plasma_square) = (
+    r_0, a, triang, kappa, i_single_null, i_plasma_shape, plasma_square = (
         mfile.get_variables(
             "rmajor",
             "rminor",
@@ -370,10 +376,11 @@ def poloidal_cross_section(
     colour_scheme :
         colour scheme to use for plots
     """
-    axis.set_xlabel("R / m")
-    axis.set_ylabel("Z / m")
-    axis.set_title("Poloidal cross-section")
+    axis.set_xlabel("R [m]")
+    axis.set_ylabel("Z [m]")
+    axis.set_title("Poloidal Cross-Section")
     axis.minorticks_on()
+    axis.grid(which="both", linestyle="--", linewidth=0.5, alpha=0.2)
 
     plot_vacuum_vessel_and_divertor(axis, mfile, scan, radial_build, colour_scheme)
     plot_shield(axis, mfile, scan, radial_build, colour_scheme)
@@ -446,8 +453,8 @@ def plot_full_machine_poloidal_cross_section(
     plot_pf_coils(axis, mfile, scan, colour_scheme)
     plot_pf_coils(axis, mfile, scan, colour_scheme, mirror_negative_x=True)
 
-    axis.set_xlabel("Radial position [m]")
-    axis.set_ylabel("Vertical position [m]")
+    axis.set_xlabel("R [m]")
+    axis.set_ylabel("Z [m]")
     axis.set_aspect("equal")
     axis.minorticks_on()
     axis.grid(which="minor", linestyle=":", linewidth=0.5, alpha=0.5)
@@ -2659,12 +2666,12 @@ def plot_main_plasma_information(
         f"Extra heat power: {mfile.get('p_hcd_secondary_extra_heat_mw', scan=scan):.4f} MW\n"
         f"$\\eta_{{\\text{{CD,sec}}}}$: {mfile.get('eta_cd_hcd_secondary', scan=scan):.4f} A/W  |   $\\langle\\zeta_{{\\text{{CD,sec}}}}\\rangle$: {mfile.get('eta_cd_dimensionless_hcd_secondary', scan=scan):.4f}  \n"
         f"$\\gamma_{{\\text{{CD,sec}}}}$: {mfile.get('eta_cd_norm_hcd_secondary', scan=scan):.4f} $\\times 10^{{20}}  \\mathrm{{A}} / \\mathrm{{Wm}}^2$\n"
-        f"Current driven by secondary: {mfile.get('c_hcd_secondary_driven', scan=scan) / 1e6:.3f} MA\n"
+        f"Current driven by secondary: {mfile.get('c_hcd_secondary_driven', scan=scan) / 1e6:.3f} MA"
     )
 
     axis.text(
-        0.66,
-        0.6,
+        0.73,
+        0.675,
         textstr_hcd,
         fontsize=9,
         verticalalignment="top",
@@ -3503,9 +3510,11 @@ def color_key(axis: plt.Axes, mfile: MFile, scan: int, colour_scheme: Literal[1,
         ("CS comp", CSCOMPRESSION_COLOUR[colour_scheme - 1]),
         (
             "TF coil",
-            TFC_COLOUR[colour_scheme - 1]
-            if mfile.get("i_tf_sup", scan=scan) != 0
-            else "#b87333",
+            (
+                TFC_COLOUR[colour_scheme - 1]
+                if mfile.get("i_tf_sup", scan=scan) != 0
+                else "#b87333"
+            ),
         ),
         ("Thermal shield", THERMAL_SHIELD_COLOUR[colour_scheme - 1]),
         ("VV & shield", VESSEL_COLOUR[colour_scheme - 1]),
@@ -3560,21 +3569,34 @@ def toroidal_cross_section(
     colour_scheme: Literal[1, 2],
 ):
     """Function to plot toroidal cross-section"""
-    axis.set_xlabel("x / m")
-    axis.set_ylabel("y / m")
-    axis.set_title("Toroidal cross-section")
+    axis.set_xlabel("R [m]")
+    axis.set_ylabel("X [m]")
+    axis.set_title("Toroidal Cross-Section")
     axis.minorticks_on()
+    axis.grid(which="both", linestyle="--", linewidth=0.5, alpha=0.2)
 
     rmajor = mfile.get("rmajor", scan=scan)
     rminor = mfile.get("rminor", scan=scan)
     r_cryostat_inboard = mfile.get("r_cryostat_inboard", scan=scan)
     dr_cryostat = mfile.get("dr_cryostat", scan=scan)
     n_tf_coils = mfile.get("n_tf_coils", scan=scan)
-    dx_beam_shield = mfile.get("dx_beam_shield", scan=scan)
-    dx_beam_duct = mfile.get("dx_beam_duct", scan=scan)
-    radius_beam_tangency = mfile.get("radius_beam_tangency", scan=scan)
+    if (
+        CurrentDriveModel(mfile.get("i_hcd_primary", scan=scan)).method
+        == CurrentDriveMethodType.NEUTRAL_BEAM
+        or CurrentDriveModel(mfile.get("i_hcd_secondary", scan=scan)).method
+        == CurrentDriveMethodType.NEUTRAL_BEAM
+    ):
+        dx_beam_shield = mfile.get("dx_beam_shield", scan=scan)
+        dx_beam_duct = mfile.get("dx_beam_duct", scan=scan)
+        radius_beam_tangency = mfile.get("radius_beam_tangency", scan=scan)
+    else:
+        dx_beam_shield = 0
+        dx_beam_duct = 0
+        radius_beam_tangency = 0
+
     dr_tf_outboard = mfile.get("dr_tf_outboard", scan=scan)
-    arc(axis, rmajor, style="dashed")
+    full_angle = 2 * np.pi
+    arc(axis, rmajor, theta2=full_angle, style="dashed")
 
     # Colour in the main components
     for v, colours in [
@@ -3582,9 +3604,12 @@ def toroidal_cross_section(
         ("dr_cs_precomp", CSCOMPRESSION_COLOUR[colour_scheme - 1]),
         (
             "dr_tf_inboard",
-            TFC_COLOUR[colour_scheme - 1]
-            if mfile.get("i_tf_sup", scan=scan) != 0
-            else "#b87333",
+            (
+                TFC_COLOUR[colour_scheme - 1]
+                if TFConductorModel(mfile.get("i_tf_sup", scan=scan))
+                != TFConductorModel.WATER_COOLED_COPPER
+                else "#b87333"
+            ),
         ),
         ("dr_shld_thermal_inboard", THERMAL_SHIELD_COLOUR[colour_scheme - 1]),
         ("dr_vv_inboard", VESSEL_COLOUR[colour_scheme - 1]),
@@ -3598,10 +3623,14 @@ def toroidal_cross_section(
         ("dr_shld_thermal_outboard", THERMAL_SHIELD_COLOUR[colour_scheme - 1]),
     ]:
         r2, r1 = cumulative_radial_build2(v, mfile, scan)
-        arc_fill(axis, r1, r2, color=colours)
+        arc_fill(axis, r1, r2, color=colours, theta2=full_angle + 1)
 
     arc_fill(
-        axis, rmajor - rminor, rmajor + rminor, color=PLASMA_COLOUR[colour_scheme - 1]
+        axis,
+        rmajor - rminor,
+        rmajor + rminor,
+        color=PLASMA_COLOUR[colour_scheme - 1],
+        theta2=full_angle + 1,
     )
 
     arc_fill(
@@ -3609,35 +3638,28 @@ def toroidal_cross_section(
         r_cryostat_inboard,
         r_cryostat_inboard + dr_cryostat,
         color=CRYOSTAT_COLOUR[colour_scheme - 1],
+        theta2=full_angle + 1,
     )
 
     # Segment the TF coil inboard
     # Calculate centrelines
-    n = int(n_tf_coils / 4) + 1
     spacing = 2 * np.pi / n_tf_coils
-    i = np.arange(0, n)
+    coil_indices = np.arange(int(n_tf_coils))
 
-    ang = i * spacing
-    angl = ang - spacing / 2
-    angu = ang + spacing / 2
-    r1, _null = cumulative_radial_build2("dr_cs_tf_gap", mfile, scan)
-    r2, _null = cumulative_radial_build2("dr_tf_inboard", mfile, scan)
+    r1, _ = cumulative_radial_build2("dr_cs_tf_gap", mfile, scan)
+    r2, _ = cumulative_radial_build2("dr_tf_inboard", mfile, scan)
     r4, r3 = cumulative_radial_build2("dr_tf_outboard", mfile, scan)
 
     # Coil width
     w = r2 * np.tan(spacing / 2)
-    xi = r1 * np.cos(angl)
-    yi = r1 * np.sin(angl)
-    xo = r2 * np.cos(angl)
-    yo = r2 * np.sin(angl)
-    axis.plot((xi, xo), (yi, yo), color="black")
-    xi = r1 * np.cos(angu)
-    yi = r1 * np.sin(angu)
-    xo = r2 * np.cos(angu)
-    yo = r2 * np.sin(angu)
-    axis.plot((xi, xo), (yi, yo), color="black")
+    for ang in (coil_indices * spacing) - spacing / 2:
+        axis.plot(
+            [r1 * np.cos(ang), r2 * np.cos(ang)],
+            [r1 * np.sin(ang), r2 * np.sin(ang)],
+            color="black",
+        )
 
-    for item in i:
+    for item in coil_indices:
         # Neutral beam shielding
         TF_outboard(
             axis,
@@ -3656,13 +3678,16 @@ def toroidal_cross_section(
             r3=r3,
             r4=r4,
             w=w,
-            facecolor=TFC_COLOUR[colour_scheme - 1]
-            if mfile.get("i_tf_sup", scan=scan) != 0
-            else "#b87333",
+            facecolor=(
+                TFC_COLOUR[colour_scheme - 1]
+                if TFConductorModel(mfile.get("i_tf_sup", scan=scan))
+                != TFConductorModel.WATER_COOLED_COPPER
+                else "#b87333"
+            ),
         )
 
     i_hcd_primary = mfile.get("i_hcd_primary", scan=scan)
-    if i_hcd_primary in {5, 8}:
+    if CurrentDriveModel(i_hcd_primary).method == CurrentDriveMethodType.NEUTRAL_BEAM:
         # Neutral beam geometry. See docs for diagram.
         a = w + dx_beam_shield
         b = dr_tf_outboard
@@ -3722,10 +3747,10 @@ def toroidal_cross_section(
     )
     if n_blkt_inboard_modules_toroidal > 1:
         # Calculate the angular spacing for each module
-        spacing = rtangle / (n_blkt_inboard_modules_toroidal / 4)
+        spacing = full_angle / (n_blkt_inboard_modules_toroidal)
         r1, _ = cumulative_radial_build2("dr_shld_inboard", mfile, scan)
         r2, _ = cumulative_radial_build2("dr_blkt_inboard", mfile, scan)
-        for i in range(1, int(n_blkt_inboard_modules_toroidal / 4)):
+        for i in range(int(n_blkt_inboard_modules_toroidal)):
             ang = i * spacing
             # Draw a line from r1 to r2 at angle ang
             axis.plot(
@@ -3743,10 +3768,10 @@ def toroidal_cross_section(
     )
     if n_blkt_outboard_modules_toroidal > 1:
         # Calculate the angular spacing for each module
-        spacing = rtangle / (n_blkt_outboard_modules_toroidal / 4)
+        spacing = full_angle / (n_blkt_outboard_modules_toroidal)
         r1, _ = cumulative_radial_build2("dr_fw_outboard", mfile, scan)
         r2, _ = cumulative_radial_build2("dr_blkt_outboard", mfile, scan)
-        for i in range(1, int(n_blkt_outboard_modules_toroidal / 4)):
+        for i in range(int(n_blkt_outboard_modules_toroidal)):
             ang = i * spacing
             # Draw a line from r1 to r2 at angle ang
             axis.plot(
@@ -3815,7 +3840,7 @@ def arc(axis: plt.Axes, r, theta1=0, theta2=rtangle, style="solid"):
     axis.plot(xs, ys, linestyle=style, color="black", lw=0.2)
 
 
-def arc_fill(axis: plt.Axes, r1, r2, color="pink"):
+def arc_fill(axis: plt.Axes, r1, r2, color="pink", theta1=0, theta2=rtangle):
     """Fills the space between two quarter circles.
 
     Parameters
@@ -3831,16 +3856,14 @@ def arc_fill(axis: plt.Axes, r1, r2, color="pink"):
     color :
          (Default value = "pink")
     """
-    angs = np.linspace(0, rtangle, endpoint=True)
+    angs = np.linspace(theta1, theta2, endpoint=True)
     xs1 = r1 * np.cos(angs)
     ys1 = r1 * np.sin(angs)
-    angs = np.linspace(rtangle, 0, endpoint=True)
+    angs = np.linspace(theta2, theta1, endpoint=True)
     xs2 = r2 * np.cos(angs)
     ys2 = r2 * np.sin(angs)
     verts = list(zip(xs1, ys1, strict=False))
     verts.extend(list(zip(xs2, ys2, strict=False)))
-    endpoint = [(r2, 0)]
-    verts.extend(endpoint)
     path = mplPath(verts, closed=True)
     patch = patches.PathPatch(path, facecolor=color, lw=0)
     axis.add_patch(patch)
@@ -3860,7 +3883,7 @@ def plot_n_profiles(prof, demo_ranges: bool, mfile: MFile, scan: int):
     scan: int :
 
     """
-    nd_alphas = mfile.get("nd_plasma_alphas_vol_avg", scan=scan)
+    nd_alphas = mfile.get("nd_plasma_alphas_thermal_vol_avg", scan=scan)
     nd_protons = mfile.get("nd_plasma_protons_vol_avg", scan=scan)
     nd_impurities = mfile.get("nd_plasma_impurities_vol_avg", scan=scan)
     nd_ions_total = mfile.get("nd_plasma_ions_total_vol_avg", scan=scan)
@@ -3957,7 +3980,7 @@ def plot_n_profiles(prof, demo_ranges: bool, mfile: MFile, scan: int):
     ax_main.plot(
         rho,
         density_profiles_plotting[1],
-        label=r"$n_{\alpha}$",
+        label=r"$n_{\alpha,\text{thermal}}$",
         color="#d62728",
         linewidth=1.5,
     )
@@ -4109,8 +4132,8 @@ def plot_n_profiles(prof, demo_ranges: bool, mfile: MFile, scan: int):
             f"{mfile.get('nd_plasma_fuel_ions_vol_avg', scan=scan):.3e} m$^{{-3}}$"
         ),
         (
-            r"$\langle n_{\text{alpha}} \rangle $: "
-            f"{mfile.get('nd_plasma_alphas_vol_avg', scan=scan):.3e} m$^{{-3}}$"
+            r"$\langle n_{\alpha,\text{thermal}} \rangle $: "
+            f"{mfile.get('nd_plasma_alphas_thermal_vol_avg', scan=scan):.3e} m$^{{-3}}$"
         ),
         (
             r"$\langle n_{\text{impurities}} \rangle $: "
@@ -4156,10 +4179,11 @@ def plot_jprofile(prof, mfile: MFile, scan: int):
     """
     alphaj = mfile.get("alphaj", scan=scan)
     j_plasma_0 = mfile.get("j_plasma_on_axis", scan=scan)
+    n_plasma_profile_elements = int(mfile.get("n_plasma_profile_elements", scan=scan))
 
     j_plasma_bootstrap_sauter_profile = [
         mfile.get(f"j_plasma_bootstrap_sauter_profile{i}", scan=scan) / 1000.0
-        for i in range(498)
+        for i in range(n_plasma_profile_elements - 3)
     ]
 
     prof.set_xlabel(r"$\rho \quad [r/a]$")
@@ -4174,7 +4198,7 @@ def plot_jprofile(prof, mfile: MFile, scan: int):
     prof.plot(rho, y2, color="red")
 
     prof.plot(
-        np.linspace(0, 1, 498),
+        np.linspace(0, 1, n_plasma_profile_elements - 3),
         j_plasma_bootstrap_sauter_profile,
         label="Sauter Bootstrap",
         color="green",
@@ -4423,11 +4447,10 @@ def read_imprad_data(_skiprows, data_path):
 
     Parameters
     ----------
-    skiprows :
+    _skiprows :
         number of rows to skip when reading impurity data files
     data_path :
         path to impurity data
-    _skiprows :
 
     """
     label = [
@@ -4501,7 +4524,7 @@ def profiles_with_pedestal(mfile, scan: int):
     te0 = mfile.get("temp_plasma_electron_on_axis_kev", scan=scan)
 
     if i_plasma_pedestal == 0:
-        # Intialise the radius
+        # Initialise the radius
 
         # The density profile
         ne = nd_plasma_electron_on_axis * (1 - rho**2) ** alphan
@@ -5365,7 +5388,7 @@ def plot_first_wall_poloidal_cross_section(axis: plt.Axes, mfile: MFile, scan: i
     len_fw_channel = mfile.get("len_fw_channel", scan=scan)
     temp_fw_coolant_in = mfile.get("temp_fw_coolant_in", scan=scan)
     temp_fw_coolant_out = mfile.get("temp_fw_coolant_out", scan=scan)
-    i_fw_coolant_type = mfile.get("i_fw_coolant_type", scan=scan)
+    i_fw_coolant_type = mfile.get("i_fw_coolant_type", scan=scan).strip("'\"")
     temp_fw_peak = mfile.get("temp_fw_peak", scan=scan)
     pres_fw_coolant = mfile.get("pres_fw_coolant", scan=scan)
     n_fw_outboard_channels = mfile.get("n_fw_outboard_channels", scan=scan)
@@ -5672,9 +5695,11 @@ def plot_tf_coils(
         (dr_tf_shld_gap, "white"),
         (
             0.0,
-            TFC_COLOUR[colour_scheme - 1]
-            if mfile.get("i_tf_sup", scan=scan) != 0
-            else "#b87333",
+            (
+                TFC_COLOUR[colour_scheme - 1]
+                if mfile.get("i_tf_sup", scan=scan) != 0
+                else "#b87333"
+            ),
         ),
     ):
         # Check for TF coil shape
@@ -5769,7 +5794,7 @@ def plot_superconducting_tf_wp(axis: plt.Axes, mfile: MFile, scan: int, fig):
     r_tf_wp_inboard_outer = mfile.get("r_tf_wp_inboard_outer", scan=scan)
     r_tf_wp_inboard_centre = mfile.get("r_tf_wp_inboard_centre", scan=scan)
 
-    if i_tf_turns_integer == 1:
+    if TFWPIntegerTurnType(i_tf_turns_integer) == TFWPIntegerTurnType.INTEGER:
         turn_layers = mfile.get("n_tf_wp_layers", scan=scan)
         turn_pancakes = mfile.get("n_tf_wp_pancakes", scan=scan)
 
@@ -5929,7 +5954,7 @@ def plot_superconducting_tf_wp(axis: plt.Axes, mfile: MFile, scan: int, fig):
 
         # Plot the rectangular WP
         if i_tf_wp_geom == 0:
-            if i_tf_turns_integer == 1:
+            if TFWPIntegerTurnType(i_tf_turns_integer) == TFWPIntegerTurnType.INTEGER:
                 long_turns = round(turn_layers)
                 short_turns = round(turn_pancakes)
             else:
@@ -7125,13 +7150,13 @@ def plot_tf_cable_in_conduit_turn(axis: plt.Axes, fig, mfile: MFile, scan: int):
     # Import the TF turn variables then multiply into mm
     i_tf_turns_integer = mfile.get("i_tf_turns_integer", scan=scan)
     # If integer turns switch is on then the turns can have non square dimensions
-    if i_tf_turns_integer == 1:
+    if TFWPIntegerTurnType(i_tf_turns_integer) == TFWPIntegerTurnType.INTEGER:
         turn_width = mfile.get("dr_tf_turn", scan=scan)
         turn_height = mfile.get("dx_tf_turn", scan=scan)
         cable_space_width_radial = mfile.get("dr_tf_turn_cable_space", scan=scan)
         cable_space_width_toroidal = mfile.get("dx_tf_turn_cable_space", scan=scan)
 
-    elif i_tf_turns_integer == 0:
+    elif TFWPIntegerTurnType(i_tf_turns_integer) == TFWPIntegerTurnType.NON_INTEGER:
         turn_width = mfile.get("dx_tf_turn_general", scan=scan)
         cable_space_width = mfile.get("dx_tf_turn_cable_space_average", scan=scan)
 
@@ -7155,7 +7180,7 @@ def plot_tf_cable_in_conduit_turn(axis: plt.Axes, fig, mfile: MFile, scan: int):
     )
 
     # Plot the total turn shape
-    if i_tf_turns_integer == 0:
+    if TFWPIntegerTurnType(i_tf_turns_integer) == TFWPIntegerTurnType.NON_INTEGER:
         axis.add_patch(
             Rectangle(
                 [0, 0],
@@ -7237,7 +7262,13 @@ def plot_tf_cable_in_conduit_turn(axis: plt.Axes, fig, mfile: MFile, scan: int):
                 cable_space_bounds=cable_bounds,
                 pipe_center=(
                     turn_width / 2,
-                    (turn_width if i_tf_turns_integer == 0 else turn_height) / 2,
+                    (
+                        turn_width
+                        if TFWPIntegerTurnType(i_tf_turns_integer)
+                        == TFWPIntegerTurnType.NON_INTEGER
+                        else turn_height
+                    )
+                    / 2,
                 ),
                 pipe_radius=he_pipe_diameter / 2,
                 strand_diameter=strand_diameter,
@@ -7254,7 +7285,7 @@ def plot_tf_cable_in_conduit_turn(axis: plt.Axes, fig, mfile: MFile, scan: int):
         axis.set_ylim(-turn_width * 0.05, turn_width * 1.05)
 
     # Non square turns
-    elif i_tf_turns_integer == 1:
+    elif TFWPIntegerTurnType(i_tf_turns_integer) == TFWPIntegerTurnType.INTEGER:
         axis.add_patch(
             Rectangle(
                 [0, 0],
@@ -7399,7 +7430,7 @@ def plot_tf_cable_in_conduit_turn(axis: plt.Axes, fig, mfile: MFile, scan: int):
         },
     )
 
-    if i_tf_turns_integer == 0:
+    if TFWPIntegerTurnType(i_tf_turns_integer) == TFWPIntegerTurnType.NON_INTEGER:
         # Add info about the steel casing surrounding the WP
         textstr_turn_cable_space = (
             f"$\\mathbf{{Cable \\ Space:}}$\n\n"
@@ -7409,7 +7440,7 @@ def plot_tf_cable_in_conduit_turn(axis: plt.Axes, fig, mfile: MFile, scan: int):
             f"Extra cable space area void fraction: {f_a_tf_turn_cable_space_extra_void}\n"
             f"True cable space area: {a_tf_turn_cable_space_effective:.3e} m$^2$"
         )
-    elif i_tf_turns_integer == 1:
+    elif TFWPIntegerTurnType(i_tf_turns_integer) == TFWPIntegerTurnType.INTEGER:
         textstr_turn_cable_space = (
             f"$\\mathbf{{Cable \\ Space:}}$\n\n"
             f"Cable space: \n$\\Delta r$: {cable_space_width_radial:.3e} m \n"
@@ -7436,14 +7467,14 @@ def plot_tf_cable_in_conduit_turn(axis: plt.Axes, fig, mfile: MFile, scan: int):
         },
     )
 
-    if i_tf_turns_integer == 0:
+    if TFWPIntegerTurnType(i_tf_turns_integer) == TFWPIntegerTurnType.NON_INTEGER:
         textstr_turn = (
             f"$\\mathbf{{Turn:}}$\n\n"
             f"$\\Delta r$: {turn_width:.3e} m\n"
             f"$\\Delta x$: {turn_width:.3e} m"
         )
 
-    if i_tf_turns_integer == 1:
+    if TFWPIntegerTurnType(i_tf_turns_integer) == TFWPIntegerTurnType.INTEGER:
         textstr_turn = (
             f"$\\mathbf{{Turn:}}$\n\n"
             f"$\\Delta r$: {turn_width:.3e} m\n"
@@ -7528,13 +7559,13 @@ def plot_tf_croco_turn(axis: plt.Axes, fig, mfile: MFile, scan: int):
     # Import the TF turn variables then multiply into mm
     i_tf_turns_integer = mfile.get("i_tf_turns_integer", scan=scan)
     # If integer turns switch is on then the turns can have non square dimensions
-    if i_tf_turns_integer == 1:
+    if TFWPIntegerTurnType(i_tf_turns_integer) == TFWPIntegerTurnType.INTEGER:
         turn_width = mfile.get("dr_tf_turn", scan=scan)
         turn_height = mfile.get("dx_tf_turn", scan=scan)
         cable_space_width_radial = mfile.get("dr_tf_turn_cable_space", scan=scan)
         cable_space_width_toroidal = mfile.get("dx_tf_turn_cable_space", scan=scan)
 
-    elif i_tf_turns_integer == 0:
+    elif TFWPIntegerTurnType(i_tf_turns_integer) == TFWPIntegerTurnType.NON_INTEGER:
         turn_width = mfile.get("dx_tf_turn_general", scan=scan)
         cable_space_width = mfile.get("dx_tf_turn_cable_space_average", scan=scan)
 
@@ -7560,7 +7591,7 @@ def plot_tf_croco_turn(axis: plt.Axes, fig, mfile: MFile, scan: int):
     dia_tf_turn_croco_cable = mfile.get("dia_tf_turn_croco_cable", scan=scan)
 
     # Plot the total turn shape
-    if i_tf_turns_integer == 0:
+    if TFWPIntegerTurnType(i_tf_turns_integer) == TFWPIntegerTurnType.NON_INTEGER:
         axis.add_patch(
             Rectangle(
                 [0, 0],
@@ -7678,7 +7709,7 @@ def plot_tf_croco_turn(axis: plt.Axes, fig, mfile: MFile, scan: int):
         },
     )
 
-    if i_tf_turns_integer == 0:
+    if TFWPIntegerTurnType(i_tf_turns_integer) == TFWPIntegerTurnType.NON_INTEGER:
         # Add info about the steel casing surrounding the WP
         textstr_turn_cable_space = (
             f"$\\mathbf{{Cable \\ Space:}}$\n\n"
@@ -7688,7 +7719,7 @@ def plot_tf_croco_turn(axis: plt.Axes, fig, mfile: MFile, scan: int):
             f"Extra cable space area void fraction: {f_a_tf_turn_cable_space_extra_void}\n"
             f"True cable space area: {a_tf_turn_cable_space_effective:.3e} m$^2$"
         )
-    elif i_tf_turns_integer == 1:
+    elif TFWPIntegerTurnType(i_tf_turns_integer) == TFWPIntegerTurnType.INTEGER:
         textstr_turn_cable_space = (
             f"$\\mathbf{{Cable \\ Space:}}$\n\n"
             f"Cable space: \n$\\Delta r$: {cable_space_width_radial:.3e} m \n"
@@ -7715,14 +7746,14 @@ def plot_tf_croco_turn(axis: plt.Axes, fig, mfile: MFile, scan: int):
         },
     )
 
-    if i_tf_turns_integer == 0:
+    if TFWPIntegerTurnType(i_tf_turns_integer) == TFWPIntegerTurnType.NON_INTEGER:
         textstr_turn = (
             f"$\\mathbf{{Turn:}}$\n\n"
             f"$\\Delta r$: {turn_width:.3e} m\n"
             f"$\\Delta x$: {turn_width:.3e} m"
         )
 
-    if i_tf_turns_integer == 1:
+    if TFWPIntegerTurnType(i_tf_turns_integer) == TFWPIntegerTurnType.INTEGER:
         textstr_turn = (
             f"$\\mathbf{{Turn:}}$\n\n"
             f"$\\Delta r$: {turn_width:.3e} m\n"
@@ -7925,7 +7956,7 @@ def plot_pf_coils(
     coils_dz = []
     coil_text = []
 
-    dr_bore = mfile.get("dr_bore", scan=scan)
+    dr_cs_bore = mfile.get("dr_cs_bore", scan=scan)
     dr_cs = mfile.get("dr_cs", scan=scan)
     dz_cs_full = mfile.get("dz_cs_full", scan=scan)
 
@@ -7954,7 +7985,7 @@ def plot_pf_coils(
         coils_z=coils_z,
         coils_dr=coils_dr,
         coils_dz=coils_dz,
-        dr_bore=dr_bore,
+        dr_cs_bore=dr_cs_bore,
         dr_cs=dr_cs,
         ohdz=dz_cs_full,
     )
@@ -8034,7 +8065,7 @@ def plot_info(axis: plt.Axes, data, mfile: MFile, scan: int):
                 colorflag = "blue"
         axis.text(0, -i, data[i][1], color=colorflag, ha="left", va="center")
         if isinstance(data[i][0], str):
-            if data[i][0] == "":
+            if not data[i][0]:
                 axis.text(eqpos, -i, "\n", ha="left", va="center")
             elif data[i][0][0] == "#":
                 axis.text(-0.05, -i, f"{data[i][0][1:]}\n", ha="left", va="center")
@@ -8115,12 +8146,14 @@ def plot_header(axis: plt.Axes, mfile: MFile, scan: int):
         (f"!{mfile.get('date', scan=-1)}", "Date:", ""),
         (f"!{mfile.get('time', scan=-1)}", "Time:", ""),
         (f"!{mfile.get('username', scan=-1)}", "User:", ""),
-        ("!Evaluation", "Run type", "")
-        if isinstance(mfile.data["minmax"], MFileErrorClass)
-        else (
-            f"!{FiguresOfMerit(abs(int(mfile.get('minmax', scan=-1)))).description}",
-            "Optimising:",
-            "",
+        (
+            ("!Evaluation", "Run type", "")
+            if isinstance(mfile.data["minmax"], MFileErrorClass)
+            else (
+                f"!{FiguresOfMerit(abs(int(mfile.get('minmax', scan=-1)))).description}",
+                "Optimising:",
+                "",
+            )
         ),
     ]
 
@@ -8449,13 +8482,13 @@ def plot_magnetics_info(axis: plt.Axes, mfile: MFile, scan: int):
             (sig_case, "TF bucking max TRESCA stress", "MPa"),
             (fcoolcp, "CP cooling fraction", "%"),
             ("vel_cp_coolant_midplane", "Maximum coolant flow speed", "ms$^{-1}$"),
-            (p_cp_resistive, "CP Resisitive heating", "MW"),
+            (p_cp_resistive, "CP resistive heating", "MW"),
             (
                 p_tf_leg_resistive,
-                "legs Resisitive heating (all legs)",
+                "legs resistive heating (all legs)",
                 "MW",
             ),
-            (p_tf_joints_resistive, "TF joints resisitive heating ", "MW"),
+            (p_tf_joints_resistive, "TF joints resistive heating ", "MW"),
         ]
 
     plot_info(axis, data, mfile, scan)
@@ -9475,9 +9508,11 @@ def plot_radial_build(axis: plt.Axes, mfile: MFile, colour_scheme: Literal[1, 2]
         SOLENOID_COLOUR[colour_scheme - 1],
         CSCOMPRESSION_COLOUR[colour_scheme - 1],
         "white",
-        TFC_COLOUR[colour_scheme - 1]
-        if mfile.get("i_tf_sup", scan=-1) != 0
-        else "#b87333",
+        (
+            TFC_COLOUR[colour_scheme - 1]
+            if mfile.get("i_tf_sup", scan=-1) != 0
+            else "#b87333"
+        ),
         "white",
         THERMAL_SHIELD_COLOUR[colour_scheme - 1],
         "white",
@@ -9497,9 +9532,11 @@ def plot_radial_build(axis: plt.Axes, mfile: MFile, colour_scheme: Literal[1, 2]
         "white",
         THERMAL_SHIELD_COLOUR[colour_scheme - 1],
         "white",
-        TFC_COLOUR[colour_scheme - 1]
-        if mfile.get("i_tf_sup", scan=-1) != 0
-        else "#b87333",
+        (
+            TFC_COLOUR[colour_scheme - 1]
+            if mfile.get("i_tf_sup", scan=-1) != 0
+            else "#b87333"
+        ),
     ]
     if int(mfile.get("i_tf_inside_cs", scan=-1)) == TFCSRadialConfiguration.TF_INSIDE_CS:
         radial_color[1] = (
@@ -9613,9 +9650,11 @@ def plot_lower_vertical_build(
         "white",
         THERMAL_SHIELD_COLOUR[colour_scheme - 1],
         "white",
-        TFC_COLOUR[colour_scheme - 1]
-        if mfile.get("i_tf_sup", scan=-1) != 0
-        else "#b87333",
+        (
+            TFC_COLOUR[colour_scheme - 1]
+            if mfile.get("i_tf_sup", scan=-1) != 0
+            else "#b87333"
+        ),
         "white",
     ]
 
@@ -9716,9 +9755,11 @@ def plot_upper_vertical_build(
             "white",
             THERMAL_SHIELD_COLOUR[colour_scheme - 1],
             "white",
-            TFC_COLOUR[colour_scheme - 1]
-            if mfile.get("i_tf_sup", scan=-1) != 0
-            else "#b87333",
+            (
+                TFC_COLOUR[colour_scheme - 1]
+                if mfile.get("i_tf_sup", scan=-1) != 0
+                else "#b87333"
+            ),
             "white",
         ]
     # Double null case
@@ -9756,9 +9797,11 @@ def plot_upper_vertical_build(
             "white",
             THERMAL_SHIELD_COLOUR[colour_scheme - 1],
             "white",
-            TFC_COLOUR[colour_scheme - 1]
-            if mfile.get("i_tf_sup", scan=-1) != 0
-            else "#b87333",
+            (
+                TFC_COLOUR[colour_scheme - 1]
+                if mfile.get("i_tf_sup", scan=-1) != 0
+                else "#b87333"
+            ),
             "white",
         ]
 
@@ -9902,8 +9945,6 @@ def plot_cs_coil_structure(
         MFILE
     scan :
         scan number to use
-    demo_ranges :
-        whether to use demo ranges for the plot
     colour_scheme :
         colour scheme to use for the plot (Default value = 1)
 
@@ -9913,7 +9954,7 @@ def plot_cs_coil_structure(
     dr_cs_full = mfile.get("dr_cs_full", scan=scan)
     dz_cs_full = mfile.get("dz_cs_full", scan=scan)
     dz_cs = mfile.get("dz_cs_full", scan=scan)
-    dr_bore = mfile.get("dr_bore", scan=scan)
+    dr_cs_bore = mfile.get("dr_cs_bore", scan=scan)
     r_cs_current_filaments_array = [
         mfile.get(f"r_pf_cs_current_filaments{i}", scan=scan) for i in range(NFIXMX)
     ]
@@ -9923,7 +9964,7 @@ def plot_cs_coil_structure(
 
     # Plot the right side of the CS
     right_cs = patches.Rectangle(
-        (dr_bore, -dz_cs / 2),
+        (dr_cs_bore, -dz_cs / 2),
         dr_cs,
         dz_cs,
         edgecolor="black",
@@ -9934,8 +9975,8 @@ def plot_cs_coil_structure(
 
     # Plot the bore of the machine
     bore_rect = patches.Rectangle(
-        (-dr_bore, -dz_cs / 2),
-        dr_bore * 2,
+        (-dr_cs_bore, -dz_cs / 2),
+        dr_cs_bore * 2,
         dz_cs,
         edgecolor="black",
         facecolor="lightgrey",
@@ -9944,7 +9985,7 @@ def plot_cs_coil_structure(
     axis.add_patch(bore_rect)
 
     left_cs = patches.Rectangle(
-        (-dr_bore - dr_cs, -dz_cs / 2),
+        (-dr_cs_bore - dr_cs, -dz_cs / 2),
         dr_cs,
         dz_cs,
         edgecolor="black",
@@ -9962,9 +10003,9 @@ def plot_cs_coil_structure(
     if dr_cs_turn > 0:
         n_lines = int(dr_cs / dr_cs_turn)
         for i in range(1, n_lines):
-            x = dr_bore + i * dr_cs_turn
+            x = dr_cs_bore + i * dr_cs_turn
             axis.plot([x, x], [-dz_cs / 2, dz_cs / 2], **t_kwargs)
-            x_left = -dr_bore - dr_cs + i * dr_cs_turn
+            x_left = -dr_cs_bore - dr_cs + i * dr_cs_turn
             axis.plot([x_left, x_left], [-dz_cs / 2, dz_cs / 2], **t_kwargs)
     # Plot horizontal lines (along Z) for each turn
     if dz_cs_turn > 0:
@@ -9972,9 +10013,9 @@ def plot_cs_coil_structure(
         for j in range(1, n_hlines):
             y = -dz_cs / 2 + j * dz_cs_turn
             # Right CS
-            axis.plot([dr_bore, dr_bore + dr_cs], [y, y], **t_kwargs)
+            axis.plot([dr_cs_bore, dr_cs_bore + dr_cs], [y, y], **t_kwargs)
             # Left CS
-            axis.plot([-dr_bore - dr_cs, -dr_bore], [y, y], **t_kwargs)
+            axis.plot([-dr_cs_bore - dr_cs, -dr_cs_bore], [y, y], **t_kwargs)
 
         l_kwargs = {"color": "black", "linestyle": "--", "linewidth": 0.6, "alpha": 0.5}
 
@@ -9982,14 +10023,14 @@ def plot_cs_coil_structure(
         axis.axhline(y=0.0, **l_kwargs)
         # Plot a vertical line at x = 0.0
         axis.axvline(x=0.0, **l_kwargs)
-        # Plot a vertical line at x = dr_bore
-        axis.axvline(x=dr_bore, **l_kwargs)
-        # Plot a vertical line at x = -dr_bore
-        axis.axvline(x=-dr_bore, **l_kwargs)
-        # Plot a vertical line at x = dr_bore + dr_cs
-        axis.axvline(x=(dr_bore + dr_cs), **l_kwargs)
-        # Plot a vertical line at x = -dr_bore - dr_cs
-        axis.axvline(x=-(dr_bore + dr_cs), **l_kwargs)
+        # Plot a vertical line at x = dr_cs_bore
+        axis.axvline(x=dr_cs_bore, **l_kwargs)
+        # Plot a vertical line at x = -dr_cs_bore
+        axis.axvline(x=-dr_cs_bore, **l_kwargs)
+        # Plot a vertical line at x = dr_cs_bore + dr_cs
+        axis.axvline(x=(dr_cs_bore + dr_cs), **l_kwargs)
+        # Plot a vertical line at x = -dr_cs_bore - dr_cs
+        axis.axvline(x=-(dr_cs_bore + dr_cs), **l_kwargs)
         # Plot a vertical line at y= dz_cs / 2
         axis.axhline(y=(dz_cs / 2), **l_kwargs)
         # Plot a vertical line at y= -dz_cs / 2
@@ -10052,15 +10093,17 @@ def plot_cs_coil_structure(
         f"CS poloidal area: {mfile.get('a_cs_poloidal', scan=scan):.4f} m$^2$\n"
         f"CS top-down toroidal area: {mfile.get('a_cs_toroidal', scan=scan):.4f} m$^2$\n"
         f"$N_{{\\text{{turns}}}}:$ {mfile.get('n_pf_coil_turns[n_cs_pf_coils-1]', scan=scan):,.2f}\n"
-        f"$I_{{\\text{{peak}}}}:$ {mfile.get('c_pf_cs_coils_peak_ma[n_cs_pf_coils-1]', scan=scan):.3f}$ \\ MA$\n"
-        f"$B_{{\\text{{peak}}}}:$ {mfile.get('b_pf_coil_peak[n_cs_pf_coils-1]', scan=scan):.3f}$ \\ T$\n"
-        f"$F_{{\\text{{z,self,peak}}}}:$ {mfile.get('forc_z_cs_self_peak_midplane', scan=scan) / 1e6:.3f}$ \\ MN$\n"
-        f"$\\sigma_{{\\text{{z,self,peak}}}}:$ {mfile.get('stress_z_cs_self_peak_midplane', scan=scan) / 1e6:.3f}$ \\ MPa$ "
+        f"$I_{{\\text{{peak}}}}:$ {mfile.get('c_pf_cs_coils_peak_ma[n_cs_pf_coils-1]', scan=scan):.3f} MA\n"
+        f"$B_{{\\text{{peak}}}}:$ {mfile.get('b_pf_coil_peak[n_cs_pf_coils-1]', scan=scan):.3f} T\n"
+        f"$F_{{\\text{{z,self,peak}}}}:$ {mfile.get('forc_z_cs_self_peak_midplane', scan=scan) / 1e6:.3f} MN\n"
+        f"$\\sigma_{{\\text{{z,self,peak}}}}:$ {mfile.get('stress_z_cs_self_peak_midplane', scan=scan) / 1e6:.3f} MPa\n"
+        f"$\\sigma_{{\\text{{mises,peak}}}}:$ {mfile.get('stress_mises_cs_peak', scan=scan) / 1e6:.3f} MPa\n"
+        f"$\\tau_{{\\text{{shear,peak}}}}:$ {mfile.get('stress_shear_cs_peak', scan=scan) / 1e6:.3f} MPa "
     )
 
     axis.text(
-        0.45,
-        0.375,
+        0.5,
+        0.6,
         textstr_cs,
         fontsize=9,
         verticalalignment="bottom",
@@ -10083,8 +10126,6 @@ def plot_cs_coil_structure(
         markersize=2,
         label="CS, PF and Plasma Current Filaments",
     )
-
-    axis.plot(0, 0, marker="o", color="red", markersize=8)
 
     axis.set_xlabel("R [m]")
     axis.set_ylabel("Z [m]")
@@ -10244,7 +10285,8 @@ def plot_cs_turn_structure(axis: plt.Axes, fig, mfile: MFile, scan: int):
     axis.set_xlabel("Length [m]")
     axis.set_ylabel("Height [m]")
     axis.set_title("CS Turn Conductor Cross-Section")
-    axis.legend()
+    cs_legend = axis.legend(loc="upper right", bbox_to_anchor=(0.7, -0.25))
+    cs_legend.get_frame().set_edgecolor("black")
     axis.grid(True, linestyle="--", alpha=0.3)
 
 
@@ -14219,9 +14261,12 @@ def plot_inequality_constraint_equations(axis: plt.Axes, m_file: MFile, scan: in
             bar_left = normalised_value
             bar_width = 1 - normalised_value
         else:
+            # For a lower limit, the normalised value is the residual itself
             normalised_value = con_residual_norm
             bar_left = 0
-            bar_width = normalised_value
+            # Set the bar width to be 1/10 times the normalised value,
+            # but cap it at 1.0 to avoid overly long bars
+            bar_width = min(normalised_value * 0.1, 1.0)
 
         # If the constraint value is very close to the bound then plot a square marker at the bound
         if np.isclose(normalised_value, 1.0, atol=1e-3):
@@ -15119,7 +15164,11 @@ def plot_quench_time_evolution(
 
     for ax, val, label in [
         (axes_1, tau_j, f"$J$ at $\\tau_{{\\text{{discharge}}}}$ ({tau_j:.2e} A/m²)"),
-        (axes_2, tau_temp, f"$T$ at $\\tau_{{\\text{{discharge}}}}$ ({tau_temp:.1f} K)"),
+        (
+            axes_2,
+            tau_temp,
+            f"$T$ at $\\tau_{{\\text{{discharge}}}}$ ({tau_temp:.1f} K)",
+        ),
     ]:
         ax.axvline(
             tau_time,
@@ -15223,7 +15272,48 @@ def plot_pf_cs_plasma_mutual_inductance(
     axis.get_figure().colorbar(im, ax=axis, label="Mutual Inductance (H)")
 
 
-def plot_cs_radial_hoop_stress_profile(
+def plot_cs_radial_stress_profile(
+    axis: plt.Axes,
+    mfile: MFile,
+    scan: int,
+    j_cs: float,
+    b_cs_inner: float,
+):
+    r_cs_inner = mfile.get("r_cs_inner", scan=scan)
+    r_cs_outer = mfile.get("r_cs_outer", scan=scan)
+
+    radii = np.linspace(r_cs_inner, r_cs_outer, num=25)
+    stress_values = np.array([
+        CSCoil.calculate_cs_radial_stress(
+            r_stress_point=radius,
+            r_cs_inner=r_cs_inner,
+            r_cs_outer=r_cs_outer,
+            j_cs=j_cs,
+            b_cs_inner=b_cs_inner,
+            f_poisson_cs_structure=poisson_steel,
+        )
+        for radius in radii
+    ])
+
+    axis.plot(
+        radii,
+        stress_values / 1e6,
+        linewidth=2,
+        label="$\\sigma_{r}$,Radial Stress",
+    )
+    max_idx = np.argmax(np.abs(stress_values))
+    max_radius = radii[max_idx]
+    max_stress = stress_values[max_idx] / 1e6
+    axis.axvline(max_radius, color="black", linestyle="--", linewidth=1.0, alpha=0.7)
+    axis.axhline(max_stress, color="black", linestyle="--", linewidth=1.0, alpha=0.7)
+    axis.set_xlabel("Radial Position (m)")
+    axis.set_ylabel("Radial Stress (MPa)")
+    axis.minorticks_on()
+    axis.grid(True, alpha=0.3)
+    axis.set_title("CS Radial Stress at BOP")
+
+
+def plot_cs_hoop_stress_profile(
     axis: plt.Axes,
     mfile: MFile,
     scan: int,
@@ -15253,49 +15343,534 @@ def plot_cs_radial_hoop_stress_profile(
         linewidth=2,
         label="$\\sigma_{\\theta}$,Hoop Stress",
     )
+    max_idx = np.argmax(np.abs(stress_values))
+    max_radius = radii[max_idx]
+    max_stress = stress_values[max_idx] / 1e6
+    axis.axvline(max_radius, color="black", linestyle="--", linewidth=1.0, alpha=0.7)
+    axis.axhline(max_stress, color="black", linestyle="--", linewidth=1.0, alpha=0.7)
     axis.set_xlabel("Radial Position (m)")
     axis.set_ylabel("Hoop Stress (MPa)")
     axis.minorticks_on()
-    axis.legend(loc="best")
     axis.set_title("CS Hoop Stress at BOP")
     axis.grid(True, alpha=0.3)
 
 
-def plot_cs_radial_stress_profile(
+def plot_cs_radial_stress_contour_profile(
     axis: plt.Axes,
     mfile: MFile,
     scan: int,
     j_cs: float,
     b_cs_inner: float,
+    colorbar_axis: plt.Axes | None = None,
 ):
     r_cs_inner = mfile.get("r_cs_inner", scan=scan)
     r_cs_outer = mfile.get("r_cs_outer", scan=scan)
+    dz_cs_full = mfile.get("dz_cs_full", scan=scan)
 
-    radii = np.linspace(r_cs_inner, r_cs_outer, num=10)
-    stress_values = np.array([
-        CSCoil.calculate_cs_radial_stress(
-            r_stress_point=radius,
-            r_cs_inner=r_cs_inner,
-            r_cs_outer=r_cs_outer,
-            j_cs=j_cs,
-            b_cs_inner=b_cs_inner,
-            f_poisson_cs_structure=poisson_steel,
-        )
-        for radius in radii
+    # Create 2D grid for contour plot: radial and vertical dimensions
+    n_radial = 50
+    radial_grid = np.linspace(r_cs_inner, r_cs_outer, n_radial)
+    height_grid = np.linspace(
+        -dz_cs_full / 2, dz_cs_full / 2, N_CS_STRESS_PROFILE_POINTS
+    )
+
+    # Create meshgrid for filled contour
+    r, z = np.meshgrid(radial_grid, height_grid)
+
+    # Calculate radial stress across the 2D grid
+    stress_data = np.zeros((len(height_grid), n_radial))
+    for i in range(len(height_grid)):
+        for j in range(n_radial):
+            stress_data[i, j] = (
+                CSCoil.calculate_cs_radial_stress(
+                    r_stress_point=radial_grid[j],
+                    r_cs_inner=r_cs_inner,
+                    r_cs_outer=r_cs_outer,
+                    j_cs=j_cs,
+                    b_cs_inner=b_cs_inner,
+                    f_poisson_cs_structure=poisson_steel,
+                )
+                / 1e6
+            )
+
+    # Plot filled contour of stress distribution
+    contour_fill = axis.contourf(r, z, stress_data, levels=15, cmap="RdYlBu")
+    contour_lines = axis.contour(
+        r,
+        z,
+        stress_data,
+        levels=[stress_data.max()],
+        colors="black",
+        linewidths=0.5,
+        alpha=0.4,
+    )
+    axis.clabel(contour_lines, inline=True, fontsize=8)
+
+    # Plot CS outline
+    axis.plot(
+        [r_cs_inner, r_cs_inner],
+        [-dz_cs_full / 2, dz_cs_full / 2],
+        "k-",
+        linewidth=2,
+        label="CS Inner",
+    )
+    axis.plot(
+        [r_cs_outer, r_cs_outer],
+        [-dz_cs_full / 2, dz_cs_full / 2],
+        "k-",
+        linewidth=2,
+        label="CS Outer",
+    )
+    axis.plot(
+        [r_cs_inner, r_cs_outer], [dz_cs_full / 2, dz_cs_full / 2], "k-", linewidth=2
+    )
+    axis.plot(
+        [r_cs_inner, r_cs_outer],
+        [-dz_cs_full / 2, -dz_cs_full / 2],
+        "k-",
+        linewidth=2,
+    )
+
+    # Use a dedicated colorbar axes when provided so the main axes width is unchanged.
+    if colorbar_axis is None:
+        cbar = axis.figure.colorbar(contour_fill, ax=axis, pad=0.02)
+    else:
+        cbar = axis.figure.colorbar(contour_fill, cax=colorbar_axis)
+    cbar.set_label("Radial Stress (MPa)")
+
+    axis.set_xlabel("R [m]")
+    axis.set_ylabel("Z [m]")
+    axis.minorticks_on()
+    axis.set_xlim(r_cs_inner * 0.9, r_cs_outer * 1.1)
+    axis.set_ylim((-dz_cs_full / 2) * 1.1, (dz_cs_full / 2) * 1.1)
+    axis.grid(True, alpha=0.3)
+
+
+def plot_cs_hoop_stress_contour_profile(
+    axis: plt.Axes,
+    mfile: MFile,
+    scan: int,
+    j_cs: float,
+    b_cs_inner: float,
+    colorbar_axis: plt.Axes | None = None,
+):
+    r_cs_inner = mfile.get("r_cs_inner", scan=scan)
+    r_cs_outer = mfile.get("r_cs_outer", scan=scan)
+    dz_cs_full = mfile.get("dz_cs_full", scan=scan)
+    f_a_cs_turn_steel = mfile.get("f_a_cs_turn_steel", scan=scan)
+
+    # Create 2D grid for contour plot: radial and vertical dimensions
+    n_radial = 50
+    radial_grid = np.linspace(r_cs_inner, r_cs_outer, n_radial)
+    height_grid = np.linspace(
+        -dz_cs_full / 2, dz_cs_full / 2, N_CS_STRESS_PROFILE_POINTS
+    )
+
+    # Create meshgrid for filled contour
+    r, z = np.meshgrid(radial_grid, height_grid)
+
+    # Calculate hoop stress across the 2D grid
+    stress_data = np.zeros((len(height_grid), n_radial))
+    for i in range(len(height_grid)):
+        for j in range(n_radial):
+            stress_data[i, j] = (
+                CSCoil.calculate_cs_hoop_stress(
+                    r_stress_point=radial_grid[j],
+                    r_cs_inner=r_cs_inner,
+                    r_cs_outer=r_cs_outer,
+                    j_cs=j_cs,
+                    b_cs_inner=b_cs_inner,
+                    f_poisson_cs_structure=poisson_steel,
+                    f_a_cs_turn_steel=f_a_cs_turn_steel,
+                )
+                / 1e6
+            )
+
+    # Plot filled contour of stress distribution
+    contour_fill = axis.contourf(r, z, stress_data, levels=15, cmap="RdYlBu_r")
+    contour_lines = axis.contour(
+        r,
+        z,
+        stress_data,
+        levels=[stress_data.max()],
+        colors="black",
+        linewidths=0.5,
+        alpha=0.4,
+    )
+    axis.clabel(contour_lines, inline=True, fontsize=8)
+
+    # Plot CS outline
+    axis.plot(
+        [r_cs_inner, r_cs_inner],
+        [-dz_cs_full / 2, dz_cs_full / 2],
+        "k-",
+        linewidth=2,
+        label="CS Inner",
+    )
+    axis.plot(
+        [r_cs_outer, r_cs_outer],
+        [-dz_cs_full / 2, dz_cs_full / 2],
+        "k-",
+        linewidth=2,
+        label="CS Outer",
+    )
+    axis.plot(
+        [r_cs_inner, r_cs_outer], [dz_cs_full / 2, dz_cs_full / 2], "k-", linewidth=2
+    )
+    axis.plot(
+        [r_cs_inner, r_cs_outer],
+        [-dz_cs_full / 2, -dz_cs_full / 2],
+        "k-",
+        linewidth=2,
+    )
+
+    # Use a dedicated colorbar axes when provided so the main axes width is unchanged.
+    if colorbar_axis is None:
+        cbar = axis.figure.colorbar(contour_fill, ax=axis, pad=0.02)
+    else:
+        cbar = axis.figure.colorbar(contour_fill, cax=colorbar_axis)
+    cbar.set_label("Hoop Stress (MPa)")
+
+    axis.set_xlabel("R [m]")
+    axis.set_ylabel("Z [m]")
+    axis.minorticks_on()
+    axis.set_xlim(r_cs_inner * 0.9, r_cs_outer * 1.1)
+    axis.set_ylim((-dz_cs_full / 2) * 1.1, (dz_cs_full / 2) * 1.1)
+    axis.grid(True, alpha=0.3)
+
+
+def plot_cs_vertical_stress_profile(
+    axis: plt.Axes,
+    mfile: MFile,
+    scan: int,
+):
+    dz_cs_full = mfile.get("dz_cs_full", scan=scan)
+
+    stress_z_profile = np.array([
+        float(mfile.data[f"stress_z_cs_self_profile_{i}"].get_scan(scan)) / 1e6
+        for i in range(N_CS_STRESS_PROFILE_POINTS)
     ])
+    z_positions = np.linspace(-dz_cs_full / 2, dz_cs_full / 2, len(stress_z_profile))
 
     axis.plot(
-        radii,
-        stress_values / 1e6,
+        stress_z_profile,
+        z_positions,
         linewidth=2,
-        label="$\\sigma_{r}$,Radial Stress",
+        label="$\\sigma_{z}$,Vertical Stress",
     )
-    axis.set_xlabel("Radial Position (m)")
-    axis.set_ylabel("Radial Stress (MPa)")
+    max_idx = np.argmax(np.abs(stress_z_profile))
+    max_stress = stress_z_profile[max_idx]
+    max_z = z_positions[max_idx]
+    axis.axvline(max_stress, color="black", linestyle="--", linewidth=1.0, alpha=0.7)
+    axis.axhline(max_z, color="black", linestyle="--", linewidth=1.0, alpha=0.7)
+    axis.set_xlabel("Vertical Stress (MPa)")
+    axis.set_ylabel("Z [m]")
     axis.minorticks_on()
     axis.grid(True, alpha=0.3)
-    axis.set_title("CS Radial Stress at BOP")
-    axis.legend(loc="best")
+    axis.set_title("CS Vertical Stress at BOP")
+
+
+def plot_vertical_stress_contour_profile(
+    axis: plt.Axes,
+    mfile: MFile,
+    scan: int,
+    colorbar_axis: plt.Axes | None = None,
+):
+    dz_cs_full = mfile.get("dz_cs_full", scan=scan)
+    r_cs_inner = mfile.get("r_cs_inner", scan=scan)
+    r_cs_outer = mfile.get("r_cs_outer", scan=scan)
+
+    stress_z_profile = [
+        float(mfile.data[f"stress_z_cs_self_profile_{i}"].get_scan(scan)) / 1e6
+        for i in range(N_CS_STRESS_PROFILE_POINTS)
+    ]
+
+    # Create 2D grid for contour plot: radial and vertical dimensions
+    n_radial = 50
+    radial_grid = np.linspace(r_cs_inner, r_cs_outer, n_radial)
+    height_grid = np.linspace(-dz_cs_full / 2, dz_cs_full / 2, len(stress_z_profile))
+
+    # Create meshgrid for filled contour
+    r, z = np.meshgrid(radial_grid, height_grid)
+
+    # Interpolate stress values across radial direction (assume linear variation)
+    stress_data = np.zeros((len(stress_z_profile), n_radial))
+    for i, stress_val in enumerate(stress_z_profile):
+        stress_data[i, :] = stress_val
+
+    # Plot filled contour of stress distribution
+    contour_fill = axis.contourf(r, z, stress_data, levels=15, cmap="RdYlBu")
+    contour_lines = axis.contour(
+        r,
+        z,
+        stress_data,
+        levels=[stress_data.max()],
+        colors="black",
+        linewidths=0.5,
+        alpha=0.4,
+    )
+    axis.clabel(contour_lines, inline=True, fontsize=8)
+
+    # Plot CS outline
+    axis.plot(
+        [r_cs_inner, r_cs_inner],
+        [-dz_cs_full / 2, dz_cs_full / 2],
+        "k-",
+        linewidth=2,
+        label="CS Inner",
+    )
+    axis.plot(
+        [r_cs_outer, r_cs_outer],
+        [-dz_cs_full / 2, dz_cs_full / 2],
+        "k-",
+        linewidth=2,
+        label="CS Outer",
+    )
+    axis.plot(
+        [r_cs_inner, r_cs_outer], [dz_cs_full / 2, dz_cs_full / 2], "k-", linewidth=2
+    )
+    axis.plot(
+        [r_cs_inner, r_cs_outer],
+        [-dz_cs_full / 2, -dz_cs_full / 2],
+        "k-",
+        linewidth=2,
+    )
+
+    # Use a dedicated colorbar axes when provided so the main axes width is unchanged.
+    if colorbar_axis is None:
+        cbar = axis.figure.colorbar(contour_fill, ax=axis, pad=0.02)
+    else:
+        cbar = axis.figure.colorbar(contour_fill, cax=colorbar_axis)
+    cbar.set_label("Vertical Stress (MPa)")
+
+    axis.set_xlabel("R [m]")
+    axis.set_ylabel("Z [m]")
+    axis.minorticks_on()
+    axis.set_xlim(r_cs_inner * 0.9, r_cs_outer * 1.1)
+    axis.set_ylim((-dz_cs_full / 2) * 1.1, (dz_cs_full / 2) * 1.1)
+    axis.grid(True, alpha=0.3)
+
+
+def plot_cs_tresca_2d_contour(
+    axis: plt.Axes,
+    mfile: MFile,
+    scan: int,
+    colorbar_axis: plt.Axes | None = None,
+):
+    dz_cs_full = mfile.get("dz_cs_full", scan=scan)
+    r_cs_inner = mfile.get("r_cs_inner", scan=scan)
+    r_cs_outer = mfile.get("r_cs_outer", scan=scan)
+    j_cs = mfile.get("j_cs_pulse_start", scan=scan)
+    b_cs_inner = mfile.get("b_cs_peak_pulse_start", scan=scan)
+    f_a_cs_turn_steel = mfile.get("f_a_cs_turn_steel", scan=scan)
+
+    stress_z_profile = np.array([
+        float(mfile.data[f"stress_z_cs_self_profile_{i}"].get_scan(scan))
+        for i in range(N_CS_STRESS_PROFILE_POINTS)
+    ])
+
+    # Create 2D grid for contour plot: radial and vertical dimensions
+    n_radial = 50
+    radial_grid = np.linspace(r_cs_inner, r_cs_outer, n_radial)
+    height_grid = np.linspace(-dz_cs_full / 2, dz_cs_full / 2, len(stress_z_profile))
+
+    # Create meshgrid for filled contour
+    r, z = np.meshgrid(radial_grid, height_grid)
+
+    # Calculate Tresca stress across the coil cross-section.
+    tresca_data = np.zeros((len(height_grid), n_radial))
+    for i, stress_z in enumerate(stress_z_profile):
+        for j, radius in enumerate(radial_grid):
+            stress_hoop = CSCoil.calculate_cs_hoop_stress(
+                r_stress_point=radius,
+                r_cs_inner=r_cs_inner,
+                r_cs_outer=r_cs_outer,
+                j_cs=j_cs,
+                b_cs_inner=b_cs_inner,
+                f_poisson_cs_structure=poisson_steel,
+                f_a_cs_turn_steel=f_a_cs_turn_steel,
+            )
+            stress_radial = CSCoil.calculate_cs_radial_stress(
+                r_stress_point=radius,
+                r_cs_inner=r_cs_inner,
+                r_cs_outer=r_cs_outer,
+                j_cs=j_cs,
+                b_cs_inner=b_cs_inner,
+                f_poisson_cs_structure=poisson_steel,
+            )
+            tresca_data[i, j] = (
+                calculate_tresca_stress(
+                    stress_x=stress_hoop,
+                    stress_y=stress_z,
+                    stress_z=stress_radial,
+                )
+                / 1e6
+            )
+
+    # Plot filled contour of Tresca stress distribution
+    contour_fill = axis.contourf(r, z, tresca_data, levels=15, cmap="RdYlBu_r")
+    contour_lines = axis.contour(
+        r,
+        z,
+        tresca_data,
+        levels=[tresca_data.max()],
+        colors="black",
+        linewidths=0.5,
+        alpha=0.4,
+    )
+    axis.clabel(contour_lines, inline=True, fontsize=8)
+
+    # Plot CS outline
+    axis.plot(
+        [r_cs_inner, r_cs_inner],
+        [-dz_cs_full / 2, dz_cs_full / 2],
+        "k-",
+        linewidth=2,
+        label="CS Inner",
+    )
+    axis.plot(
+        [r_cs_outer, r_cs_outer],
+        [-dz_cs_full / 2, dz_cs_full / 2],
+        "k-",
+        linewidth=2,
+        label="CS Outer",
+    )
+    axis.plot(
+        [r_cs_inner, r_cs_outer], [dz_cs_full / 2, dz_cs_full / 2], "k-", linewidth=2
+    )
+    axis.plot(
+        [r_cs_inner, r_cs_outer],
+        [-dz_cs_full / 2, -dz_cs_full / 2],
+        "k-",
+        linewidth=2,
+    )
+
+    # Use a dedicated colorbar axes when provided so the main axes width is unchanged.
+    if colorbar_axis is None:
+        cbar = axis.figure.colorbar(contour_fill, ax=axis, pad=0.02)
+    else:
+        cbar = axis.figure.colorbar(contour_fill, cax=colorbar_axis)
+    cbar.set_label("Tresca Stress (MPa)")
+
+    axis.set_xlabel("R [m]")
+    axis.set_ylabel("Z [m]")
+    axis.minorticks_on()
+    axis.set_xlim(r_cs_inner * 0.9, r_cs_outer * 1.1)
+    axis.set_ylim((-dz_cs_full / 2) * 1.1, (dz_cs_full / 2) * 1.1)
+    axis.grid(True, alpha=0.3)
+    axis.set_title("CS Tresca Stress Contour at BOP")
+
+
+def plot_cs_von_mises_2d_contour(
+    axis: plt.Axes,
+    mfile: MFile,
+    scan: int,
+    colorbar_axis: plt.Axes | None = None,
+):
+    dz_cs_full = mfile.get("dz_cs_full", scan=scan)
+    r_cs_inner = mfile.get("r_cs_inner", scan=scan)
+    r_cs_outer = mfile.get("r_cs_outer", scan=scan)
+    j_cs = mfile.get("j_cs_pulse_start", scan=scan)
+    b_cs_inner = mfile.get("b_cs_peak_pulse_start", scan=scan)
+    f_a_cs_turn_steel = mfile.get("f_a_cs_turn_steel", scan=scan)
+
+    stress_z_profile = np.array([
+        float(mfile.data[f"stress_z_cs_self_profile_{i}"].get_scan(scan))
+        for i in range(N_CS_STRESS_PROFILE_POINTS)
+    ])
+
+    # Create 2D grid for contour plot: radial and vertical dimensions
+    n_radial = 50
+    radial_grid = np.linspace(r_cs_inner, r_cs_outer, n_radial)
+    height_grid = np.linspace(-dz_cs_full / 2, dz_cs_full / 2, len(stress_z_profile))
+
+    # Create meshgrid for filled contour
+    r, z = np.meshgrid(radial_grid, height_grid)
+
+    # Calculate Von Mises stress across the coil cross-section.
+    von_mises_data = np.zeros((len(height_grid), n_radial))
+    for i, stress_z in enumerate(stress_z_profile):
+        for j, radius in enumerate(radial_grid):
+            stress_hoop = CSCoil.calculate_cs_hoop_stress(
+                r_stress_point=radius,
+                r_cs_inner=r_cs_inner,
+                r_cs_outer=r_cs_outer,
+                j_cs=j_cs,
+                b_cs_inner=b_cs_inner,
+                f_poisson_cs_structure=poisson_steel,
+                f_a_cs_turn_steel=f_a_cs_turn_steel,
+            )
+            stress_radial = CSCoil.calculate_cs_radial_stress(
+                r_stress_point=radius,
+                r_cs_inner=r_cs_inner,
+                r_cs_outer=r_cs_outer,
+                j_cs=j_cs,
+                b_cs_inner=b_cs_inner,
+                f_poisson_cs_structure=poisson_steel,
+            )
+            von_mises_data[i, j] = (
+                calculate_von_mises_stress(
+                    stress_x=stress_hoop,
+                    stress_y=stress_z,
+                    stress_z=stress_radial,
+                    stress_shear_xy=0.0,
+                    stress_shear_yz=0.0,
+                    stress_shear_zx=0.0,
+                )
+                / 1e6
+            )
+
+    # Plot filled contour of Von Mises stress distribution
+    contour_fill = axis.contourf(r, z, von_mises_data, levels=15, cmap="RdYlBu_r")
+    contour_lines = axis.contour(
+        r,
+        z,
+        von_mises_data,
+        levels=[von_mises_data.max()],
+        colors="black",
+        linewidths=0.5,
+        alpha=0.4,
+    )
+    axis.clabel(contour_lines, inline=True, fontsize=8)
+
+    # Plot CS outline
+    axis.plot(
+        [r_cs_inner, r_cs_inner],
+        [-dz_cs_full / 2, dz_cs_full / 2],
+        "k-",
+        linewidth=2,
+        label="CS Inner",
+    )
+    axis.plot(
+        [r_cs_outer, r_cs_outer],
+        [-dz_cs_full / 2, dz_cs_full / 2],
+        "k-",
+        linewidth=2,
+        label="CS Outer",
+    )
+    axis.plot(
+        [r_cs_inner, r_cs_outer], [dz_cs_full / 2, dz_cs_full / 2], "k-", linewidth=2
+    )
+    axis.plot(
+        [r_cs_inner, r_cs_outer],
+        [-dz_cs_full / 2, -dz_cs_full / 2],
+        "k-",
+        linewidth=2,
+    )
+
+    # Use a dedicated colorbar axes when provided so the main axes width is unchanged.
+    if colorbar_axis is None:
+        cbar = axis.figure.colorbar(contour_fill, ax=axis, pad=0.02)
+    else:
+        cbar = axis.figure.colorbar(contour_fill, cax=colorbar_axis)
+    cbar.set_label("Von Mises Stress (MPa)")
+
+    axis.set_xlabel("R [m]")
+    axis.minorticks_on()
+    axis.set_xlim(r_cs_inner * 0.9, r_cs_outer * 1.1)
+    axis.set_ylim((-dz_cs_full / 2) * 1.1, (dz_cs_full / 2) * 1.1)
+    axis.grid(True, alpha=0.3)
+    axis.set_title("CS Von Mises Stress Contour at BOP")
 
 
 def main_plot(
@@ -15309,8 +15884,6 @@ def main_plot(
 
     Parameters
     ----------
-    figs :
-        figure object to add plot to
     m_file :
         MFILE
     scan :
@@ -15598,6 +16171,25 @@ def main_plot(
         colour_scheme,
     )
 
+    ax_full_toroidal = _add_page("full_machine_toroidal").add_subplot(
+        111, aspect="equal"
+    )
+    toroidal_cross_section(
+        ax_full_toroidal,
+        m_file,
+        scan,
+        demo_ranges,
+        colour_scheme,
+    )
+    ax_full_toroidal.set_ylim([
+        -ax_full_toroidal.get_ylim()[1],
+        ax_full_toroidal.get_ylim()[1],
+    ])
+    ax_full_toroidal.set_xlim([
+        -ax_full_toroidal.get_xlim()[1],
+        ax_full_toroidal.get_xlim()[1],
+    ])
+
     ax18 = _add_page().add_subplot(211)
     ax18.set_position([0.1, 0.33, 0.8, 0.6])
     plot_radial_build(ax18, m_file, colour_scheme)
@@ -15723,33 +16315,135 @@ def main_plot(
 
     plot_pf_cs_plasma_mutual_inductance(_add_page().add_subplot(111), m_file, scan)
 
-    plot_cs_stress_time_profile(
-        axis=_add_page("stress").add_subplot(431), mfile=m_file, scan=scan
-    )
-
-    plot_cs_radial_hoop_stress_profile(
-        axis=pages["stress"].add_subplot(432),
-        mfile=m_file,
-        scan=scan,
-        j_cs=m_file.get("j_cs_pulse_start", scan=scan),
-        b_cs_inner=m_file.get("b_cs_peak_pulse_start", scan=scan),
-    )
-
-    plot_cs_radial_stress_profile(
-        axis=pages["stress"].add_subplot(433),
-        mfile=m_file,
-        scan=scan,
-        j_cs=m_file.get("j_cs_pulse_start", scan=scan),
-        b_cs_inner=m_file.get("b_cs_peak_pulse_start", scan=scan),
-    )
-
     plot_cs_coil_structure(
-        pages["stress"].add_subplot(223, aspect="equal"), pages["stress"], m_file, scan
+        _add_page("cs_structure").add_subplot(121, aspect="equal"),
+        pages["cs_structure"],
+        m_file,
+        scan,
     )
     plot_cs_turn_structure(
-        pages["stress"].add_subplot(326, aspect="equal"), pages["stress"], m_file, scan
+        pages["cs_structure"].add_subplot(326, aspect="equal"),
+        pages["cs_structure"],
+        m_file,
+        scan,
     )
-    pages["stress"].subplots_adjust(wspace=0.3)
+
+    plot_cs_stress_time_profile(
+        axis=_add_page("cs_stress").add_subplot(337), mfile=m_file, scan=scan
+    )
+
+    ax_332 = pages["cs_stress"].add_subplot(332)
+    plot_cs_hoop_stress_profile(
+        axis=ax_332,
+        mfile=m_file,
+        scan=scan,
+        j_cs=m_file.get("j_cs_pulse_start", scan=scan),
+        b_cs_inner=m_file.get("b_cs_peak_pulse_start", scan=scan),
+    )
+
+    ax_333 = pages["cs_stress"].add_subplot(333)
+    plot_cs_radial_stress_profile(
+        axis=ax_333,
+        mfile=m_file,
+        scan=scan,
+        j_cs=m_file.get("j_cs_pulse_start", scan=scan),
+        b_cs_inner=m_file.get("b_cs_peak_pulse_start", scan=scan),
+    )
+
+    ax_334 = pages["cs_stress"].add_subplot(334)
+    ax_334_position = ax_334.get_position()
+    cbar_ax_334 = pages["cs_stress"].add_axes([
+        ax_334_position.x1 - 0.01,
+        ax_334_position.y0,
+        0.012,
+        ax_334_position.height,
+    ])
+
+    ax_336 = pages["cs_stress"].add_subplot(336, sharex=ax_333, sharey=ax_334)
+    ax_336_position = ax_336.get_position()
+    cbar_ax_336 = pages["cs_stress"].add_axes([
+        ax_336_position.x1 + 0.01,
+        ax_336_position.y0,
+        0.012,
+        ax_336_position.height,
+    ])
+
+    plot_cs_radial_stress_contour_profile(
+        axis=ax_336,
+        mfile=m_file,
+        scan=scan,
+        j_cs=m_file.get("j_cs_pulse_start", scan=scan),
+        b_cs_inner=m_file.get("b_cs_peak_pulse_start", scan=scan),
+        colorbar_axis=cbar_ax_336,
+    )
+
+    ax_331 = pages["cs_stress"].add_subplot(331)
+    plot_cs_vertical_stress_profile(
+        axis=ax_331,
+        mfile=m_file,
+        scan=scan,
+    )
+    plot_vertical_stress_contour_profile(
+        axis=ax_334,
+        mfile=m_file,
+        scan=scan,
+        colorbar_axis=cbar_ax_334,
+    )
+
+    ax_335 = pages["cs_stress"].add_subplot(335, sharex=ax_332, sharey=ax_334)
+    ax_335_position = ax_335.get_position()
+    cbar_ax_335 = pages["cs_stress"].add_axes([
+        ax_335_position.x1 + 0.01,
+        ax_335_position.y0,
+        0.012,
+        ax_335_position.height,
+    ])
+    plot_cs_hoop_stress_contour_profile(
+        axis=ax_335,
+        mfile=m_file,
+        scan=scan,
+        j_cs=m_file.get("j_cs_pulse_start", scan=scan),
+        b_cs_inner=m_file.get("b_cs_peak_pulse_start", scan=scan),
+        colorbar_axis=cbar_ax_335,
+    )
+
+    pages["cs_stress"].subplots_adjust(wspace=0.45, hspace=0.45)
+
+    # Keep y-axis labeling on the left contour only when sharing y across contour subplots.
+    for axis in (ax_335, ax_336):
+        axis.set_ylabel("")
+        axis.tick_params(axis="y", labelleft=False)
+
+    ax_338 = pages["cs_stress"].add_subplot(338, sharex=ax_332, sharey=ax_335)
+    ax_338_position = ax_338.get_position()
+    cbar_ax_338 = pages["cs_stress"].add_axes([
+        ax_338_position.x1 + 0.01,
+        ax_338_position.y0,
+        0.012,
+        ax_338_position.height,
+    ])
+    plot_cs_tresca_2d_contour(
+        axis=ax_338,
+        mfile=m_file,
+        scan=scan,
+        colorbar_axis=cbar_ax_338,
+    )
+
+    ax_339 = pages["cs_stress"].add_subplot(339, sharex=ax_332, sharey=ax_338)
+    ax_339_position = ax_339.get_position()
+    cbar_ax_339 = pages["cs_stress"].add_axes([
+        ax_339_position.x1 + 0.01,
+        ax_339_position.y0,
+        0.012,
+        ax_339_position.height,
+    ])
+
+    plot_cs_von_mises_2d_contour(
+        axis=ax_339,
+        mfile=m_file,
+        scan=scan,
+        colorbar_axis=cbar_ax_339,
+    )
 
     plot_first_wall_top_down_cross_section(
         _add_page("fw_td_cross_section").add_subplot(221, aspect="equal"), m_file, scan
@@ -15830,9 +16524,9 @@ def create_thickness_builds(m_file, scan: int):
         else:
             build = m_file.get(item, scan=scan)
 
-    radial[item] = build
-    subtotal += build
-    cumulative_radial[item] = subtotal
+        radial[item] = build
+        subtotal += build
+        cumulative_radial[item] = subtotal
 
     upper = {}
     cumulative_upper = {}
@@ -15890,7 +16584,7 @@ def plot_summary(
     # create main plot
     # Increase range when adding new page
     # run main_plot
-    mfile_obj = MFile(mfile) if mfile != "" else MFile("MFILE.DAT")
+    mfile_obj = MFile(mfile) if mfile else MFile("MFILE.DAT")
     run_label = f"{mfile_obj.get('fileprefix', scan=-1)} | scan {scan or -1} | {mfile_obj.get('date', scan=-1)} {mfile_obj.get('time', scan=-1)} | {mfile_obj.get('tagno', scan=-1)} | Branch: {mfile_obj.get('branch_name', scan=-1)}  "
     pages_of_plots = main_plot(
         mfile_obj,

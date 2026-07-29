@@ -122,7 +122,7 @@ p_div_bt_q_aspect_rmajor_max_mw = 9.2 * maximum ratio of Psep*Bt/qAR (MWT/m)
 *------------------Cost Variables------------------*
 
 output_costs = 0
-cost_model = 0
+i_cost_model = 0
 abktflnc = 15 * Allowable first wall/blanket neutron
 adivflnc = 20.0 * Allowable divertor heat fluence (mw-yr/m2)
 f_t_plant_available   = 0.75 * Total plant availability fraction;
@@ -221,7 +221,7 @@ zref(6) = 1.0
 zref(7) = 1.0
 zref(8) = 1.0
 
-alstroh = 6.6D8 * allowable hoop stress in Central Solenoid structural material (Pa)
+stress_cs_steel_max = 6.6D8 * allowable hoop stress in Central Solenoid structural material (Pa)
 fcuohsu = 0.70 * copper fraction of strand in central solenoid cable
 i_cs_superconductor = 5 * WST Nb3Sn parameterisation
 f_a_cs_turn_steel = 0.8

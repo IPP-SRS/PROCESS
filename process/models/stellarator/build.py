@@ -71,7 +71,8 @@ def st_build(stellarator, f_output: bool, data: DataStructure):
         + data.physics.rminor
     )
 
-    # Bc stellarators cannot scale data.physics.rminor reasonably well an additional constraint equation is required,
+    # Bc stellarators cannot scale data.physics.rminor reasonably well
+    # an additional constraint equation is required,
     # that ensures that there is enough space between coils and plasma.
     data.build.required_radial_space = (
         data.build.dr_tf_inboard / 2.0e0
@@ -83,12 +84,12 @@ def st_build(stellarator, f_output: bool, data: DataStructure):
         + data.build.dr_fw_plasma_gap_inboard
     )
 
-    # derivative_min_LCFS_coils_dist  for how strong the stellarator shape changes wrt to aspect ratio
+    # derivative_min_LCFS_coils_dist  for how strong the stellarator shape
+    # changes wrt to aspect ratio
     data.build.available_radial_space = (
         data.stellarator.r_coil_minor * data.stellarator.f_coil_shape
         - data.physics.rminor
-    )
-    +data.stellarator_config.stella_config_derivative_min_lcfs_coils_dist * (
+    ) + data.stellarator_config.stella_config_derivative_min_lcfs_coils_dist * (
         data.physics.rminor
         - data.stellarator.f_st_rmajor * data.stellarator_config.stella_config_rminor_ref
     )
@@ -196,6 +197,12 @@ def output(stellarator, data):
         "Req. Space (m)",
         "(required_radial_space)",
         data.build.required_radial_space,
+    )
+    po.ovarre(
+        stellarator.outfile,
+        "Normalized plasma-coil distance",
+        "(f_dr_plasma_coil_normalized)",
+        data.build.available_radial_space / data.physics.rminor,
     )
 
     radius = 0.0e0

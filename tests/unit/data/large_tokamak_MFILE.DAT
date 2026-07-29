@@ -7200,7 +7200,7 @@ ___CS_void_cross-sectional_area_(m2)_____________________________________ (awpoh
 CS_steel_cross-sectional_area_(m2)_______________________________________ (a_cs_poloidal-awpoh)__________ 4.82632267125448777e+00 OP 
 CS_steel_area_fraction___________________________________________________ (f_a_cs_turn_steel)____________ 5.32206960520000383e-01 
 Switch_for_CS_stress_calculation_________________________________________ (i_cs_stress)__________________            0 
-Allowable_stress_in_CS_steel_(Pa)________________________________________ (alstroh)______________________ 7.50000000000000000e+08 
+Allowable_stress_in_CS_steel_(Pa)________________________________________ (stress_cs_steel_max)______________________ 7.50000000000000000e+08 
 Hoop_stress_in_CS_steel_(Pa)_____________________________________________ (sig_hoop)_____________________ 6.36342985396654248e+08 OP 
 Axial_stress_in_CS_steel_(Pa)____________________________________________ (sig_axial)____________________ -7.37875243663206577e+08 OP 
 Maximum_shear_stress_in_CS_steel_for_the_Tresca_criterion_(Pa)___________ (s_shear_cs_peak)______________ 6.36342985396654248e+08 OP 
@@ -7356,7 +7356,7 @@ Radial_thickness_off_outboard_first_wall_(m)_____________________________ (dr_fw
 Number_of_inboard_first_wall_cooling_channels____________________________ (n_fw_inboard_channels)________         7550 OP 
 Number_of_outboard_first_wall_cooling_channels___________________________ (n_fw_outboard_channels)_______        12505 OP 
 # First wall pumping #
-First_wall_coolant_type__________________________________________________ (i_fw_coolant_type)____________     'helium' 
+First_wall_coolant_type__________________________________________________ (i_fw_coolant_type)____________     'Helium' 
 Outlet_temperature_of_first_wall_coolant_[K]_____________________________ (temp_fw_coolant_out)__________ 8.23000000000000000e+02 OP 
 Inlet_temperature_of_first_wall_coolant_[K]______________________________ (temp_fw_coolant_in)___________ 5.73000000000000000e+02 OP 
 Pressure_of_first_wall_coolant_[Pa]______________________________________ (pres_fw_coolant)______________ 1.55000000000000000e+07 OP 
@@ -7693,7 +7693,7 @@ p_hcd_injected_max = 200.0
 *--------------------------------*
 icc = 16
 ixc = 25 * fp_plant_electric_net_required_mw
-* Minimum allowable value for net eletric power [MW]
+* Minimum allowable value for net electric power [MW]
 p_plant_electric_net_required_mw = 400.0
 
 * Beta upper limit *
@@ -7778,7 +7778,7 @@ icc = 72
 ixc = 123 * foh_stress
 foh_stress = 1.0
 * allowable hoop stress in Central Solenoid structural material [Pa]
-alstroh = 7.5D8
+stress_cs_steel_max = 7.5D8
 
 * nd_plasma_pedestal_electron<nd_plasma_electron_on_axis *
 *------------------*
@@ -8128,7 +8128,7 @@ qnuc = 1.3E4
 output_costs = 1
 
 * Costs model switch
-cost_model = 0
+i_cost_model = 0
 
 * Total plant availability fraction;
 f_t_plant_available = 0.80
