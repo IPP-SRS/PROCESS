@@ -1,3 +1,4 @@
+from process.core import _idf_probe
 from process.core.solver.evaluators import Evaluators
 from process.core.solver.iteration_variables import (
     load_iteration_variables,
@@ -67,6 +68,7 @@ class SolverHandler:
                 self.data.numerics.epsfcn *= 10  # try new larger value
                 print("new epsfcn = ", self.data.numerics.epsfcn)
 
+                _idf_probe.note_retry(self.data.numerics.epsfcn)
                 ifail = self.solver.solve()
                 # First solution attempt failed (ifail != 1): supply ifail value
                 # to next attempt
@@ -76,6 +78,7 @@ class SolverHandler:
                 print("Trying again with new epsfcn")
                 self.data.numerics.epsfcn /= 10  # try new smaller value
                 print("new epsfcn = ", self.data.numerics.epsfcn)
+                _idf_probe.note_retry(self.data.numerics.epsfcn)
                 ifail = self.solver.solve()
                 self.data.numerics.epsfcn *= 10  # reset value
 
@@ -88,6 +91,7 @@ class SolverHandler:
                     "estimate of the second derivative matrix."
                 )
                 self.solver.set_b(2.0)
+                _idf_probe.note_retry(self.data.numerics.epsfcn)
                 ifail = self.solver.solve()
 
         self.output()

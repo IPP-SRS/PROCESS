@@ -3,6 +3,7 @@ import math
 
 import numpy as np
 
+from process.core import _idf_probe
 from process.core.caller import Caller
 from process.core.model import DataStructure
 
@@ -59,7 +60,11 @@ class Evaluators:
         conf = np.zeros(m, dtype=np.float64, order="F")
 
         # Evaluate machine parameters at xv
-        objf, conf = self.caller.call_models(xv, m)
+        _idf_probe.PHASE = "func"
+        try:
+            objf, conf = self.caller.call_models(xv, m)
+        finally:
+            _idf_probe.PHASE = "other"
 
         summ = 0.0
         for i in range(m):
@@ -119,6 +124,7 @@ class Evaluators:
         ffor = 0.0
         fbac = 0.0
 
+        _idf_probe.PHASE = "grad"
         for i in range(n):
             for j in range(n):
                 xfor[j] = xv[j]
@@ -145,6 +151,8 @@ class Evaluators:
         # variable in the solution vector is inconsistent with its value
         # shown elsewhere in the output file, which is a factor (1-epsfcn)
         # smaller (i.e. its xbac value above).
+        _idf_probe.PHASE = "grad_reconcile"
         self.caller.call_models(xv, m)
+        _idf_probe.PHASE = "other"
 
         return fgrd, cnorm

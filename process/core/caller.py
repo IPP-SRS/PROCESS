@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from tabulate import tabulate
 
-from process.core import constants
+from process.core import _idf_probe, constants
 from process.core.final import finalise
 from process.core.io.mfile import MFile
 from process.core.process_output import OutputFileManager, ovarre
@@ -68,6 +68,16 @@ class Caller:
         return False
 
     def call_models(self, xc: np.ndarray, m: int) -> tuple[float, np.ndarray]:
+        """Evaluate models, dispatching to the IDF probe if it is enabled.
+
+        Inert unless the PROCESS_IDF_PROBE environment variable is set; see
+        process/core/_idf_probe.py.
+        """
+        if _idf_probe.MODE:
+            return _idf_probe.call_models(self, xc, m)
+        return self._call_models_original(xc, m)
+
+    def _call_models_original(self, xc: np.ndarray, m: int) -> tuple[float, np.ndarray]:
         """Evaluate models until results are idempotent.
 
         Ensure objective function and constraints are idempotent before returning.
@@ -96,6 +106,8 @@ class Caller:
         # Evaluate models up to 10 times; any more implies non-converging values
         for _ in range(10):
             self._call_models_once(xc)
+            if _idf_probe.MODE:
+                _idf_probe.note_sweep()
             # Evaluate objective function and constraints
             objf = objective_function(self.data.numerics.minmax, self.data)
             conf, _, _, _, _ = constraints.constraint_eqns(m, -1, self.data)
