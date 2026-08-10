@@ -1,8 +1,8 @@
 # Functional rewrite of PROCESS analysis models — plan
 
 Status: **Stage 1 (proof of principle) in progress.** Do not scale to full
-tokamak/stellarator batches until the three proof-of-principle rewrites
-below are confirmed.
+tokamak/stellarator batches until the proof-of-principle rewrites below are
+confirmed.
 
 ## 1. Context
 
@@ -295,7 +295,57 @@ gives them a dedicated slot rather than being lumped in with "easy" models:
   (the actual point of this whole exercise) is only exercised in miniature
   here, via `current_sharing_rebco` calling `jcrit_rebco`.
 
-## 8. Stages 4–5: batching for parallel agents
+## 8. Numerical equivalence testing (mandatory for every model)
+
+A rewrite that hasn't been checked against the original is a guess, not a
+result — this applies to every one of the 60 models, not just the stage-1
+proof of principle. **Every rewritten model must ship with a test in
+`rewritten_models/idempotence_tests/` before it counts as done.** ("Idempotence
+tests" is the requested folder name; what they actually check is *numerical
+equivalence* between the rewrite and the original, not idempotence in the
+strict sense.)
+
+Shared harness: `idempotence_tests/_harness.py` — read its module docstring
+for the full rationale. In short, every test combines two things, applied
+the same way across all of stage 1, 4, and 5:
+
+1. **A random sweep**, `random_samples(ranges, n, seed)` — typically
+   `n=300`, always a fixed explicit `seed` (reproducible, not "whatever
+   numpy's default state happens to be"). `ranges` must bracket a
+   *physically realistic* span for each input (document the reasoning, not
+   just the numbers) — wide enough to stress the arithmetic, not so wide
+   the correlation is being evaluated somewhere physically meaningless.
+   Comparison is **exact equality**, not a tolerance — these are meant to
+   be line-for-line translations, and every stage-1 rewrite achieved exact
+   equality across its whole sweep. A tolerance would hide the class of bug
+   (reordered ops, `np.sqrt` swapped for `math.sqrt`, a dropped term) this
+   testing exists to catch.
+2. **Explicit branch/edge-case coverage** — read the original source, list
+   every conditional branch and error path by hand, and add one hand-picked
+   case landing in each (including ones a random sweep is very unlikely to
+   hit, like an exact switch-domain boundary or a `denom == 0` guard). Say,
+   in the test file's docstring, concretely which branch each case covers.
+
+For an `ImplicitFunction`, one more layer: `assert_residual_matches_explicit`
+checks the residual formula itself, pointwise, against an independently
+written reference expression — not by re-deriving it via the rewritten
+`ExplicitFunction` it happens to call, which would let a shared bug hide on
+both sides. `assert_roots_match_via_solver` then separately confirms that
+solving the rewritten residual with the same solver call as the original
+converges to the same root. Two different residual formulas can converge to
+the same root under a forgiving solver, so root-matching alone isn't
+sufficient — see `test_superconductors.py` for the worked example of both
+layers together.
+
+Requires the real `process` package: run with
+`conda run -n PROCESS_env python -m pytest rewritten_models/idempotence_tests/`.
+Every test module calls `require_process()` first so running outside
+`PROCESS_env` skips with a clear reason instead of an opaque import error.
+
+Every stage 4/5 agent gets this section verbatim as part of its brief, and
+its work isn't done until its models' `idempotence_tests` pass.
+
+## 9. Stages 4–5: batching for parallel agents
 
 Once stage 1 is confirmed: batch the remaining 44 tokamak-only models (47
 minus the 3 already done) and then the 13 stellarator-only models into
@@ -305,12 +355,13 @@ model nodes — a large monolith (`Physics`, `CCFE_HCPB`, `CICCSuperconductingTF
 single-function-file nodes (e.g. `engineering.materials_functions`,
 `engineering.ivc_functions_functions`) are grouped together. Each agent gets:
 this plan, the specific node(s) from §3's tables, the naming rules in §6,
-and instructions to append to `_namespace.py` (append-only within a batch;
-I resolve any cross-agent clashes `_namespace.declare()` surfaces before the
-batch is called done) and to flag anything matching a §7 "known gap" rather
-than silently improvising a convention for it.
+the testing methodology in §8, and instructions to append to `_namespace.py`
+(append-only within a batch; I resolve any cross-agent clashes
+`_namespace.declare()` surfaces before the batch is called done) and to flag
+anything matching a §7 "known gap" rather than silently improvising a
+convention for it.
 
-## 9. Findings along the way (log)
+## 10. Findings along the way (log)
 
 - **`exhaust.py`**: `PlasmaExhaust.calculate_radiation_fraction`'s parameter
   is named `p_plasma_heating_mw`, but every call site feeds it
@@ -328,7 +379,26 @@ than silently improvising a convention for it.
   this exercise is well-placed to surface (a mismatched call site is far more
   visible once the callee has an explicit signature).
 
-## 10. Open questions / room for feedback
+## 11. Stage 1 verification
+
+All rewrites are checked by `rewritten_models/idempotence_tests/` (§8's
+methodology — random sweeps + explicit branch coverage, exact equality),
+run against the live `process` package. Current status, all passing:
+
+| test file | model(s) | sweep size | branch/edge cases covered |
+|---|---|---|---|
+| `idempotence_tests/physics/test_exhaust.py` | `PlasmaExhaust`'s 4 methods | 300/class | zero-heating-power guard in `RadiationFraction` |
+| `idempotence_tests/physics/test_density_limit.py` | `PlasmaDensityLimit`'s 8 correlations + selector + fraction | 300 | `denom<=0` guard (`JetEdgeRadiationDensityLimit`); all 8 switch values exhaustively; illegal-switch error path |
+| `idempotence_tests/test_superconductors.py` | `jcrit_rebco`/`current_sharing_rebco` | 300 (+50 for the root-solve check) | temp-vs-`temp_c0max_rebco`, field-too-high, out-of-validity-range branches; residual formula pointwise vs. solved-root layers |
+| `idempotence_tests/stellarator/test_stellarator.py` | `Stellarator`'s geometry-scaling slice (§7) | 300/class | `is_aspect_iteration_variable` branch (both sides) |
+
+Run: `conda run -n PROCESS_env python -m pytest rewritten_models/idempotence_tests/ -v`.
+
+(An earlier, pre-harness pass hand-checked `exhaust`/`density_limit`/
+`superconductors` with ad hoc scratch scripts before this suite existed;
+superseded by the table above, not kept.)
+
+## 12. Open questions / room for feedback
 
 *(nothing outstanding right now — filled in as you give feedback on the
 stage 1 rewrites)*

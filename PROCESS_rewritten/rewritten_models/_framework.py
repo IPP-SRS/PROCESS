@@ -33,6 +33,7 @@ Design intent
 from __future__ import annotations
 
 import abc
+from typing import Any
 
 
 class Output:
@@ -77,7 +78,7 @@ class ExplicitFunction(_DeclaresOutputs, abc.ABC):
     """
 
     @abc.abstractmethod
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> Any:
         """Compute and return this model's declared output(s)."""
 
 
@@ -93,5 +94,9 @@ class ImplicitFunction(_DeclaresOutputs, abc.ABC):
     """
 
     @abc.abstractmethod
-    def residual(self, *args, **kwargs):
-        """Return the residual(s), zero at the solution."""
+    def residual(self, *args, **kwargs) -> Any:
+        """Return the residual(s), zero at the solution.
+
+        See ``ExplicitFunction.__call__`` for why this is ``Any``, not
+        ``None``.
+        """
