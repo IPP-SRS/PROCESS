@@ -255,12 +255,140 @@ def load_stellarator_config(istell: int, config_file: Path | None, data: DataStr
         case _:
             raise ProcessValueError(f"{istell=} is not an integer in the range [1, 6]")
 
-    for variable_name, variable_value in machine_config.items():
-        name_on_data_structure = f"stella_config_{variable_name.lower()}"
+    _assign_stellarator_config(data, machine_config)
 
-        if hasattr(data.stellarator_config, name_on_data_structure):
-            setattr(
-                data.stellarator_config,
-                name_on_data_structure,
-                variable_value,
-            )
+
+def _assign_stellarator_config(data: DataStructure, machine_config: dict) -> None:
+    """Copy *machine_config* onto ``data.stellarator_config``.
+
+    One explicit assignment per declared field, in ``StellaratorConfigData``
+    declaration order. This replaced a ``setattr`` loop over the config keys.
+    The loop was correct but wrote 35 fields through a computed name, so no
+    static reader -- an IDE, ``mypy``, a grep, or a dependency analyser --
+    could see that these fields are ever written. They appeared to be
+    configuration that nothing produces.
+
+    Three behaviours of the loop are preserved deliberately:
+
+    * **Case folding.** Nine keys are not written in the case of the field they
+      set -- ``I0``, ``WP_area``, ``WP_bmax``, ``WP_ratio``,
+      ``max_force_density_MNm``, the three ``centering_force_*_MN``, and
+      ``derivative_min_LCFS_coils_dist`` -- hence the ``.lower()`` normalisation
+      before the block rather than at each lookup.
+    * **Unknown keys are skipped silently.** This is not theoretical:
+      ``tests/regression/input_files/stellarator_helias.stella_conf.json``
+      carries 38 keys of which 3 match no field (``number_nu_star``,
+      ``D11_star_mono_input``, ``nu_star_mono_input``). Raising on an unknown
+      key would break that scenario.
+    * **Duplicate folded keys keep last-wins.** ``{"I0": 1.0, "i0": 2.0}`` are
+      two distinct keys that fold to one; the loop ``setattr``\\ ed both and the
+      last won, and the dict comprehension below keeps the last for the same
+      reason.
+
+    A new config key now costs two edits rather than one -- a field on
+    ``StellaratorConfigData`` and an assignment here. That is the price of the
+    writes being visible, and it is what the surrounding tooling assumes.
+
+    Note what is deliberately *not* fixed: the silent skip hides typos, so a
+    user writing ``epsef`` for ``epseff`` gets the dataclass default and no
+    warning. That is arguably the worse defect, but changing it would change
+    behaviour, which this does not.
+    """
+    config = {key.lower(): value for key, value in machine_config.items()}
+
+    if "name" in config:
+        data.stellarator_config.stella_config_name = config["name"]
+    if "symmetry" in config:
+        data.stellarator_config.stella_config_symmetry = config["symmetry"]
+    if "coilspermodule" in config:
+        data.stellarator_config.stella_config_coilspermodule = config["coilspermodule"]
+    if "rmajor_ref" in config:
+        data.stellarator_config.stella_config_rmajor_ref = config["rmajor_ref"]
+    if "rminor_ref" in config:
+        data.stellarator_config.stella_config_rminor_ref = config["rminor_ref"]
+    if "coil_rmajor" in config:
+        data.stellarator_config.stella_config_coil_rmajor = config["coil_rmajor"]
+    if "coil_rminor" in config:
+        data.stellarator_config.stella_config_coil_rminor = config["coil_rminor"]
+    if "aspect_ref" in config:
+        data.stellarator_config.stella_config_aspect_ref = config["aspect_ref"]
+    if "bt_ref" in config:
+        data.stellarator_config.stella_config_bt_ref = config["bt_ref"]
+    if "wp_area" in config:
+        data.stellarator_config.stella_config_wp_area = config["wp_area"]
+    if "wp_bmax" in config:
+        data.stellarator_config.stella_config_wp_bmax = config["wp_bmax"]
+    if "i0" in config:
+        data.stellarator_config.stella_config_i0 = config["i0"]
+    if "a1" in config:
+        data.stellarator_config.stella_config_a1 = config["a1"]
+    if "a2" in config:
+        data.stellarator_config.stella_config_a2 = config["a2"]
+    if "dmin" in config:
+        data.stellarator_config.stella_config_dmin = config["dmin"]
+    if "inductance" in config:
+        data.stellarator_config.stella_config_inductance = config["inductance"]
+    if "coilsurface" in config:
+        data.stellarator_config.stella_config_coilsurface = config["coilsurface"]
+    if "coillength" in config:
+        data.stellarator_config.stella_config_coillength = config["coillength"]
+    if "max_portsize_width" in config:
+        data.stellarator_config.stella_config_max_portsize_width = config[
+            "max_portsize_width"
+        ]
+    if "maximal_coil_height" in config:
+        data.stellarator_config.stella_config_maximal_coil_height = config[
+            "maximal_coil_height"
+        ]
+    if "min_plasma_coil_distance" in config:
+        data.stellarator_config.stella_config_min_plasma_coil_distance = config[
+            "min_plasma_coil_distance"
+        ]
+    if "derivative_min_lcfs_coils_dist" in config:
+        data.stellarator_config.stella_config_derivative_min_lcfs_coils_dist = config[
+            "derivative_min_lcfs_coils_dist"
+        ]
+    if "vol_plasma" in config:
+        data.stellarator_config.stella_config_vol_plasma = config["vol_plasma"]
+    if "plasma_surface" in config:
+        data.stellarator_config.stella_config_plasma_surface = config["plasma_surface"]
+    if "wp_ratio" in config:
+        data.stellarator_config.stella_config_wp_ratio = config["wp_ratio"]
+    if "max_force_density" in config:
+        data.stellarator_config.stella_config_max_force_density = config[
+            "max_force_density"
+        ]
+    if "max_force_density_mnm" in config:
+        data.stellarator_config.stella_config_max_force_density_mnm = config[
+            "max_force_density_mnm"
+        ]
+    if "min_bend_radius" in config:
+        data.stellarator_config.stella_config_min_bend_radius = config[
+            "min_bend_radius"
+        ]
+    if "epseff" in config:
+        data.stellarator_config.stella_config_epseff = config["epseff"]
+    if "max_lateral_force_density" in config:
+        data.stellarator_config.stella_config_max_lateral_force_density = config[
+            "max_lateral_force_density"
+        ]
+    if "max_radial_force_density" in config:
+        data.stellarator_config.stella_config_max_radial_force_density = config[
+            "max_radial_force_density"
+        ]
+    if "centering_force_max_mn" in config:
+        data.stellarator_config.stella_config_centering_force_max_mn = config[
+            "centering_force_max_mn"
+        ]
+    if "centering_force_min_mn" in config:
+        data.stellarator_config.stella_config_centering_force_min_mn = config[
+            "centering_force_min_mn"
+        ]
+    if "centering_force_avg_mn" in config:
+        data.stellarator_config.stella_config_centering_force_avg_mn = config[
+            "centering_force_avg_mn"
+        ]
+    if "neutron_peakfactor" in config:
+        data.stellarator_config.stella_config_neutron_peakfactor = config[
+            "neutron_peakfactor"
+        ]
