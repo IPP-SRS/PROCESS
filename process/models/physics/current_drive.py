@@ -1772,11 +1772,14 @@ class CurrentDrive(Model):
 
             # Assign outputs for models that return multiple values
             if secondary_cdm.method == CurrentDriveMethodType.NEUTRAL_BEAM:
-                _, f_p_beam_injected_ions, f_p_beam_shine_through = (
-                    self.neutral_beam.iternb()
-                    if self.data.current_drive.i_hcd_secondary == 5
-                    else self.neutral_beam.culnbi()
-                )
+                if self.data.current_drive.i_hcd_secondary == 5:
+                    _, f_p_beam_injected_ions, f_p_beam_shine_through = (
+                        self.neutral_beam.iternb()
+                    )
+                else:
+                    _, f_p_beam_injected_ions, f_p_beam_shine_through = (
+                        self.neutral_beam.culnbi()
+                    )
                 self.data.current_drive.f_p_beam_injected_ions = f_p_beam_injected_ions
                 self.data.current_drive.f_p_beam_shine_through = f_p_beam_shine_through
 
