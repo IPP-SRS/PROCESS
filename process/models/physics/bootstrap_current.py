@@ -137,7 +137,7 @@ class PlasmaBootstrapCurrent(Model):
         (
             self.data.current_drive.f_c_plasma_bootstrap_sauter,
             self.data.physics.j_plasma_bootstrap_sauter_profile,
-        ) = self.bootstrap_fraction_sauter(self.plasma_profile)
+        ) = self.sauter_bootstrap.bootstrap_fraction_sauter(self.plasma_profile)
         self.data.current_drive.f_c_plasma_bootstrap_sauter *= (
             self.data.current_drive.cboot
         )
@@ -583,25 +583,6 @@ class PlasmaBootstrapCurrent(Model):
         pratio = (beta_toroidal - betae) / betae
 
         return (q / q95) * (al1 * (a1 + (pratio * (a1 + alphai * a2))) + al2 * a2)
-
-    def bootstrap_fraction_sauter(
-        self, plasma_profile: PlasmaProfile
-    ) -> tuple[float, np.ndarray]:
-        """Get the bootstrap current fraction using Sauter et al scaling.
-
-        Parameters
-        ----------
-        plasma_profile : PlasmaProfile
-            The plasma profile object containing the necessary plasma parameters for the
-            Sauter bootstrap calculation.
-
-        Returns
-        -------
-        tuple[float, np.ndarray]
-            A tuple containing the bootstrap current fraction and the bootstrap current
-            density profile.
-        """
-        return self.sauter_bootstrap.bootstrap_fraction_sauter(plasma_profile)
 
     def bootstrap_fraction_nevins(
         self,

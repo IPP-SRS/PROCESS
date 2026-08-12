@@ -458,7 +458,7 @@ def test_bootstrap_fraction_sauter(bootstrapfractionsauterparam, monkeypatch, ph
         )
 
     physics.plasma_profile.run()
-    bfs, _ = physics.plasma_bootstrap_current.bootstrap_fraction_sauter(
+    bfs, _ = physics.plasma_bootstrap_current.sauter_bootstrap.bootstrap_fraction_sauter(
         physics.plasma_profile
     )
 
