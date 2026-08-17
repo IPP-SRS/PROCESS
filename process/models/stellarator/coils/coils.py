@@ -222,6 +222,17 @@ def intersect(x1, y1, x2, y2, xin):
 
     dx = 0.01e0 / max(n1, n2) * (xmax - xmin)
 
+    # [XDSM-DRIVER] name: SubSolver_CoilIntersect  role: subsolver
+    #   iterates: to a root (Newton, bounded at 100)
+    #   solves: np.interp(x, x1, y1) - np.interp(x, x2, y2)
+    #   data_interface: none
+    #   note: a hand-rolled Newton on the difference of two interpolated curves, to
+    #         find where they cross. Stellarator-only, and the second of the two
+    #         sub-solvers the T3.9b census added to the plan's five.
+    #   note2: a pure numerical utility -- the four curve arrays and the initial
+    #         guess all arrive as arguments, and the crossing point leaves as a
+    #         return value. It is geometry, not physics, and it is coupled to
+    #         PROCESS only through its caller.
     for _i in range(100):
         #  Find difference in y values at x
 

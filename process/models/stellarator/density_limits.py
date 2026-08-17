@@ -207,6 +207,25 @@ def power_at_ignition_point(stellarator, gyro_frequency_max, te0_available):
 
     # The second call seems to be necessary for all values to "converge"
     # (and is sufficient)
+    # [XDSM-DRIVER] name: MDA_StellaratorDensityLimit  role: mda  iterates: 2
+    #   solves: st_phys
+    #   data_interface: none
+    #   note0: no declared interface, and the reason is the defect rather than a gap
+    #         in this declaration. An MDA's data interface is the set of COUPLING
+    #         VARIABLES it converges, and PROCESS does not name them: the source says
+    #         only that "all values" converge on the second call. The fields are
+    #         st_phys's own accesses, already in the graph as the host model's edges,
+    #         and there is no subset anybody has identified as the coupling set.
+    #         Enumerating st_phys's reads here would claim a convergence criterion
+    #         that PROCESS does not state.
+    #   note: an impromptu MDA, and the clearest one in PROCESS: st_phys is called
+    #         twice in a row because once is not enough. The source says so --
+    #         "The second call seems to be necessary for all values to 'converge'
+    #         (and is sufficient)". The fixed point is reached by writing the
+    #         iteration out, so no loop-shape predicate can find it; this block is
+    #         the only thing that puts it in the graph.
+    #   note2: classifying an unrolled repeat as an MDA is a MODELLING CHOICE. The
+    #         evidence is the comment above, quoted rather than paraphrased.
     proxy_stellarator.st_phys(False)
     proxy_stellarator.st_phys(False)
 

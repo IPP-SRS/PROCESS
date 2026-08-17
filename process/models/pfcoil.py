@@ -4905,6 +4905,18 @@ def superconpf(
             )
 
         another_estimate = 2 * temp_pf_peak_field
+        # [XDSM-DRIVER] name: SubSolver_PFCoilZeroMargin  role: subsolver
+        #   iterates: to a root (secant, maxiter 50)
+        #   solves: superconductor_current_density_margin
+        #   data_interface: none
+        #   note: scipy.optimize.newton for the PF coil zero-margin temperature. The same
+        #         residual as SubSolver_TFCoilTemperatureMargin, driven from a different
+        #         model -- but here every one of the ten arguments is a local of the
+        #         enclosing module-level function, including the three HTS tape
+        #         dimensions the TF site reads from the data structure.
+        #   note2: that asymmetry is a finding, not an artefact of this declaration: two
+        #         call sites of one residual, one reading shared state and one taking the
+        #         same quantities by parameter.
         t_zero_margin, _root_result = optimize.newton(
             func=superconductors.superconductor_current_density_margin,
             x0=temp_pf_peak_field,

@@ -465,7 +465,23 @@ class Vacuum(Model):
         #  = 0 otherwise
 
         #  Newton's method solution for duct diameter
-
+        # [XDSM-DRIVER] name: SubSolver_VacuumNewton  role: subsolver
+        #   iterates: to a root (Newton, bounded at 100, per duct size)
+        #   solves: duct diameter d[i] against the effective conductance ceff[i]
+        #   data_interface: none
+        #   note: a hand-rolled Newton iteration -- the only sub-solver here that is not
+        #         a scipy call, and the reason the inventory is a census rather than a
+        #         grep for scipy.
+        #   note2: the clearest case of U-7. Everything the loop touches is a local numpy
+        #         array (d, ceff, xmult, s, sp) or a local float (l1, l2, l3), and the
+        #         iterate d[i] is an ELEMENT of an array -- not addressable as a
+        #         data.<group>.<field> even in principle. No traversal could derive an
+        #         interface here, and there is none to derive.
+        #   note3: at the previous pin this block sat inline in ``vacuum()`` at the
+        #         ``while True``. Upstream #4491 (0df70973) extracted the loop into this
+        #         method and the residual into ``_newton_function``; the declaration moved
+        #         with the loop. The enclosing class is still ``Vacuum``, so the host
+        #         attribution ``_hosts_of`` computes is unchanged.
         while True:
             d[i] = 1.0e0
             for _ in range(100):

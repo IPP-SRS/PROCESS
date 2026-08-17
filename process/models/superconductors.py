@@ -279,6 +279,21 @@ def current_sharing_rebco(bfield, j):
 
     estimate = 10.0
     another_estimate = 20.0
+    # [XDSM-DRIVER] name: SubSolver_CurrentSharingT  role: subsolver
+    #   iterates: to a root (secant, maxiter 50)
+    #   solves: deltaj_rebco
+    #   data_interface: none
+    #   note: scipy.optimize.newton on a closure defined in this scope. One of seven
+    #         embedded root-finders; each is a solver inside a model, and is shown
+    #         immediately above the model it belongs to rather than beside the
+    #         top-level drivers.
+    #   note2: no data interface, declared rather than merely absent. The residual
+    #         deltaj_rebco closes over `bfield` and `j`, which are the enclosing
+    #         function's ARGUMENTS -- current_sharing_rebco is a module-level
+    #         function called from superconducting.py:4453 with two locals. Nothing
+    #         in this solver touches data.<group>.<field>, in either direction, so
+    #         its coupling to the rest of PROCESS is entirely through the host
+    #         model's call and return.
     current_sharing_t, _root_result = optimize.newton(
         deltaj_rebco,
         estimate,

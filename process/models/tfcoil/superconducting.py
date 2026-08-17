@@ -1263,6 +1263,21 @@ class SuperconductingTFCoil(TFCoil):
             (
                 t_zero_margin,
                 _,
+            # [XDSM-DRIVER] name: SubSolver_TFCoilTemperatureMargin  role: subsolver
+            #   iterates: to a root (secant, maxiter 50)
+            #   solves: superconductor_current_density_margin
+            #   reads: superconducting_tfcoil.dr_tf_hts_tape,
+            #         superconducting_tfcoil.dx_tf_hts_tape_rebco,
+            #         superconducting_tfcoil.dx_tf_hts_tape_total
+            #   note: scipy.optimize.newton for the superconductor temperature margin. The
+            #         only one of the seven whose residual arguments include data structure
+            #         fields; the rest of `arguments` (j_superconductor, b_tf_inboard_peak,
+            #         strain, bc20m, tc0m) are the host method's own locals.
+            #   note2: no `writes:`. The root t_zero_margin is a RETURN VALUE; the write to
+            #         data.tfcoil.temp_margin happens in the host, after the solve, from the
+            #         root minus temp_tf_coolant_peak_field. Attributing that write here
+            #         would put the margin's provenance on the solver rather than on the
+            #         model that defines it.
             ) = optimize.newton(
                 superconductors.superconductor_current_density_margin,
                 temp_tf_coolant_peak_field,

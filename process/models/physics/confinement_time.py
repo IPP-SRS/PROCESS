@@ -1157,6 +1157,33 @@ class PlasmaConfinementTime(Model):
 
             return fhz_value
 
+        # [XDSM-DRIVER] name: SubSolver_ConfinementFhz  role: subsolver
+        #   iterates: to a bracketed root over (0.01, 150)
+        #   solves: fhz
+        #   reads: current_drive.p_hcd_injected_total_mw, physics.aspect,
+        #         physics.b_plasma_toroidal_on_axis,
+        #         physics.eden_plasma_electrons_thermal_vol_avg,
+        #         physics.eden_plasma_ions_thermal_vol_avg, physics.eps,
+        #         physics.f_p_alpha_plasma_deposited, physics.i_plasma_ignited,
+        #         physics.i_rad_loss, physics.kappa, physics.kappa95,
+        #         physics.m_fuel_amu, physics.n_charge_plasma_effective_vol_avg,
+        #         physics.nd_plasma_electron_line,
+        #         physics.nd_plasma_electrons_vol_avg, physics.p_alpha_total_mw,
+        #         physics.p_non_alpha_charged_mw, physics.pden_alpha_total_mw,
+        #         physics.pden_non_alpha_charged_mw, physics.pden_plasma_core_rad_mw,
+        #         physics.pden_plasma_ohmic_mw, physics.pden_plasma_rad_mw,
+        #         physics.plasma_current, physics.q95, physics.qstar, physics.rmajor,
+        #         physics.rminor, physics.temp_plasma_electron_density_weighted_kev,
+        #         physics.vol_plasma
+        #   note: scipy root_scalar on a closure, bracketed (0.01, 150). The residual is
+        #         the plasma power balance: fhz is zero when transport losses equal the
+        #         heating terms, so the root is the confinement multiplier that closes
+        #         the balance. The widest data interface of the seven -- 29 fields, all
+        #         read, and it re-reads every one of them at every bracket evaluation.
+        #   note2: no `writes:`. The root leaves as the enclosing method's return value.
+        #         Two of the reads -- i_rad_loss and i_plasma_ignited -- are SWITCHES:
+        #         they select which terms enter the residual, so the function the solver
+        #         drives to zero is not the same function between scenarios.
         return root_scalar(fhz, bracket=(0.01, 150), xtol=0.001).root
 
     def output_confinement_time_info(self):

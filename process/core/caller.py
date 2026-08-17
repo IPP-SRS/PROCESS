@@ -70,6 +70,22 @@ class Caller:
             return np.allclose(previous, current, rtol=1.0e-6, equal_nan=True)
         return False
 
+    # [XDSM-DRIVER] name: MDA_Idempotence  role: mda  entry: call_models
+    #   absorbs: Caller, Caller._call_models_once, Caller.check_agreement
+    #   iterates: to idempotence, bounded at 10
+    #   note: PROCESS's only genuine MDA loop: it re-evaluates every model until the
+    #         objective and the constraints stop changing, bounded at 10 passes.
+    #         Written as `for _ in range(10)` with an early return, which is why a
+    #         convergence-shaped-loop predicate does not find it (T3.9b).
+    #   note2: it absorbs Caller because in an xDSM the MDA *is* the component that
+    #         dispatches the disciplines, and Caller already occupies that position
+    #         (U-2). No `calls:` field: the models it dispatches are derived from
+    #         the edges Caller carried, not declared.
+    #   note3: it converges the OBJECTIVE AND CONSTRAINTS, not the coupling
+    #         variables -- a proxy. Coupling variables that do not move f or c by
+    #         the tolerance are declared converged, and those are exactly the
+    #         residuals that pollute a finite-difference gradient. The floor is two
+    #         sweeps, because idempotence needs two agreeing passes.
     def call_models(self, xc: np.ndarray, m: int) -> tuple[float, np.ndarray]:
         """Evaluate models until results are idempotent.
 
@@ -132,6 +148,23 @@ class Caller:
             "converged (don't produce idempotent values)."
         )
 
+    # [XDSM-DRIVER] name: MDA_Output  role: mda  entry: call_models_and_write_output
+    #   absorbs: Caller._call_models_once
+    #   iterates: to idempotence, bounded at 10
+    #   note: the same loop re-run once at the end, at fixed x*, with output=True.
+    #         Called from write_output_files (caller.py:436), so it runs once per
+    #         scan point on both the VMCON and the FSolve path -- outside the
+    #         optimisation, not as extra optimiser iterations.
+    #   note2: it converges a DIFFERENT criterion: every float in the MFILE, rather
+    #         than the objective and constraints. So the design whose numbers reach
+    #         the MFILE need not be the design VMCON evaluated last. It earns a
+    #         node for that reason.
+    #   note3: a proper MDAO formulation would not need it. It exists because (a)
+    #         the MDA converges functionals rather than couplings, so outputs that
+    #         do not feed f or c can still be unconverged at x*, and (b) output
+    #         writing re-runs the models on their output=True paths, so producing
+    #         the report requires re-executing the analysis. Fix either and this
+    #         node disappears.
     def call_models_and_write_output(self, xc: np.ndarray, ifail: int):
         """Evaluate models until results are idempotent, then write output files.
 

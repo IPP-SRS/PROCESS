@@ -137,6 +137,17 @@ class Stellarator(Model):
             # st_phys and density limits should be integrated to avoid this double call.
             # Problem was probably bigger in the older version
 
+            # [XDSM-DRIVER] name: MDA_StellaratorOutputConsistency  role: mda  iterates: 2
+            #   solves: st_phys
+            #   data_interface: none
+            #   note0: as MDA_StellaratorDensityLimit -- the coupling set is unnamed in
+            #         PROCESS, so declaring one would be inventing the convergence criterion
+            #         rather than recording it.
+            #   note: the same unrolled fixed point on the output path -- "A second call of
+            #         st_phys is used to make sure it is consistent. st_phys and density
+            #         limits should be integrated to avoid this double call." Declared
+            #         separately from MDA_StellaratorDensityLimit because it runs in a
+            #         different branch (output=True) and the primary analysis prunes it.
             self.st_phys(False)
 
             st_div(self, True, self.data)

@@ -1432,6 +1432,30 @@ class LowerHybrid(Model):
 
         rat0 = 0.8e0
 
+        # [XDSM-DRIVER] name: SubSolver_LHRadius  role: subsolver
+        #   iterates: to a root (secant, bounded at 100)
+        #   solves: lheval
+        #   reads: physics.alphan, physics.alphat, physics.b_plasma_toroidal_on_axis,
+        #         physics.nd_plasma_electron_on_axis,
+        #         physics.nd_plasma_pedestal_electron,
+        #         physics.nd_plasma_separatrix_electron,
+        #         physics.radius_plasma_pedestal_density_norm,
+        #         physics.radius_plasma_pedestal_temp_norm, physics.rmajor,
+        #         physics.rminor, physics.tbeta,
+        #         physics.temp_plasma_electron_on_axis_kev,
+        #         physics.temp_plasma_pedestal_kev, physics.temp_plasma_separatrix_kev
+        #   note: a hand-rolled secant iteration for the lower-hybrid penetration
+        #         radius. NOT in the plan's inventory of five -- found by the T3.9b
+        #         census and validated by the user. It is a root-find, structurally
+        #         identical to the vacuum.py Newton, not an MDA.
+        #   note2: the reads are lheval's, taken from the method the loop evaluates
+        #         (current_drive.py:1479) rather than from the loop body, which touches
+        #         only rat0/r1/r2. That is the general shape of U-7: a sub-solver's data
+        #         interface belongs to its RESIDUAL, and the residual is somewhere else.
+        #   note3: no `writes:`. The converged ratio leaves as lhrad's return value.
+        #         Three evaluations of lheval per iteration -- at rat0, rat0*(1-1e-3)
+        #         and rat0*(1+1e-3) -- because the derivative is itself a finite
+        #         difference; the same pattern as VMCON's gradients, one level down.
         for _ in range(100):
             #  Minor radius ratios either side of the latest guess
 

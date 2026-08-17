@@ -309,6 +309,29 @@ class VaryRun:
             vary_iteration_variables(itervars, lbs, ubs, self.config)
 
 
+# [XDSM-DRIVER] name: COOR  role: coordinator
+#   calls: VMCON, MDA_Output
+#   absorbs: Scan, SingleRun.run_scan, Scan.run_scan, Scan.doopt, Scan.scan_1d,
+#         Scan.scan_2d
+#   iterates: one solve per scan point
+#   note: the coordinator block. Its inputs are the scenario's input deck and,
+#         for the stellarator, its .stella_conf.json; its outputs are the
+#         variables that reach the MFILE. Both come from the registries
+#         (core/registries.py), never from a variable's lack of a writer --
+#         COOR's row must be a fact about PROCESS, not about how complete this
+#         tool's traversal happens to be.
+#   note2: no `entry:` field on purpose. COOR is a node, not a function the
+#         traversal walks into: nothing in PROCESS is named COOR, and its
+#         boundary is split across SingleRun.__init__ (deck read, init_process)
+#         and finish()/append_input() (outputs written).
+#   note3: Scan is absorbed rather than drawn (U-5). The xDSM's subject is one
+#         optimisation problem, and a sweep is a sequence of them. Two facts the
+#         absorption carries: Scan.__init__ runs the sweep as a CONSTRUCTOR SIDE
+#         EFFECT, and successive scan points WARM-START from the previous
+#         optimum, because SolverHandler.output() writes the solution back to
+#         data.numerics.xcm (solver_handler.py:117) and run() reloads it (:35).
+#         That continuation is free, undocumented in PROCESS, and would break
+#         silently if anything reset solver state between points.
 class SingleRun:
     """Perform a single run of PROCESS."""
 

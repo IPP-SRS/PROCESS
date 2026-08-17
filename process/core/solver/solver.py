@@ -448,6 +448,15 @@ def get_solver(data: DataStructure, solver_name: str = "vmcon") -> _Solver:
     return solver
 
 
+# [XDSM-CALL] to: ExternalSolver  via: importlib.import_module
+#   why: importlib.import_module(package) + getattr(module, "__process_solver__").
+#        Unresolvable by construction -- the callee is named by a string that
+#        arrives from the input deck, and the module need not exist in the tree
+#        at all. The last of the original four hops still worth declaring: the
+#        other three (Scan.__init__, get_solver, pyvmcon) are now internal to
+#        COOR and VMCON, so the merge deleted the hop rather than crossing it.
+#   note: no [XDSM-DRIVER] for the callee. Declaring a node for a solver that
+#         may not exist would put a box in the xDSM that no run ever executes.
 def load_external_solver(package: str):
     """Attempts to load a package of name `package`.
 

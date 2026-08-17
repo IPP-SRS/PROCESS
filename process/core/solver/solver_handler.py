@@ -42,6 +42,34 @@ class SolverHandler:
         self.solver_name = solver_name
         self.data = data
 
+    # [XDSM-DRIVER] name: VMCON  role: optimizer  entry: run
+    #   calls: MDA_Idempotence
+    #   absorbs: get_solver, Vmcon.solve, VmconProblem.__call__, Evaluators.fcnvmc1,
+    #         Evaluators.fcnvmc2, FSolve.solve, load_iteration_variables,
+    #         load_scaled_bounds
+    #   iterates: to convergence, with a restart ladder on failure
+    #   note: the cut is SolverHandler.run() (U-1). Everything inside it is solver
+    #         numerics -- variable loading and scaling, the QP, the line search, the
+    #         finite-difference stencil, the restart policy -- and nothing inside it
+    #         is PROCESS physics. The cut also swallows the solver choice, which is
+    #         why three of the four unresolvable hops disappear from the diagram.
+    #   note2: the constraints (82 registered) and the objective (16 figures of
+    #         merit) are read here, and the iteration variables (83) written here.
+    #         The write is a MODELLING CHOICE (U-8): set_scaled_iteration_variable
+    #         physically runs inside _call_models_once, once per MDA sweep, and for
+    #         10 of the 83 that per-sweep re-write RESETS a model's own value --
+    #         2 of them active in the tokamak reference deck. Attributing x to the
+    #         optimiser is xDSM convention and matches intent; it is not evidence
+    #         that PROCESS could move the call.
+    #   note3: gradients are central differences over the iteration variables, so
+    #         one evaluation costs several MDA solves and a failed solve is retried
+    #         with a perturbed step. Deliberately NOT drawn: the DSM is a
+    #         qualitative structural representation and cost figures belong in the
+    #         prose (docs/PROCESS_architecture_evaluation.md).
+    #   note4: FSolve is absorbed rather than drawn. It is a different architecture
+    #         -- equality constraints only, no objective -- but neither reference
+    #         deck selects it (ioptimz = 1 in both), and a box no configuration can
+    #         execute does not belong in that configuration's xDSM.
     def run(self):
         """Run solver and retry if it fails in certain ways."""
         # Initialise iteration variables and bounds in Fortran
