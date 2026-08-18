@@ -309,21 +309,29 @@ class VaryRun:
             vary_iteration_variables(itervars, lbs, ubs, self.config)
 
 
-# [XDSM-DRIVER] name: COOR  role: coordinator
+# [XDSM-DRIVER] name: COOR_SingleRun  role: coordinator
 #   calls: VMCON, MDA_Output
 #   absorbs: Scan, SingleRun.run_scan, Scan.run_scan, Scan.doopt, Scan.scan_1d,
 #         Scan.scan_2d
 #   iterates: one solve per scan point
-#   note: the coordinator block. Its inputs are the scenario's input deck and,
-#         for the stellarator, its .stella_conf.json; its outputs are the
-#         variables that reach the MFILE. Both come from the registries
+#   note: the coordinator block. Its inputs are the scenario's input deck plus the
+#         INPUT_VARIABLES defaults some model reads, and -- for the stellarator --
+#         its .stella_conf.json; its outputs are the variables that reach the
+#         MFILE, collected from MDA_Output. All come from the registries
 #         (core/registries.py), never from a variable's lack of a writer --
-#         COOR's row must be a fact about PROCESS, not about how complete this
+#         this row must be a fact about PROCESS, not about how complete this
 #         tool's traversal happens to be.
-#   note2: no `entry:` field on purpose. COOR is a node, not a function the
-#         traversal walks into: nothing in PROCESS is named COOR, and its
-#         boundary is split across SingleRun.__init__ (deck read, init_process)
-#         and finish()/append_input() (outputs written).
+#   note2: no `entry:` field on purpose. This is a node, not a function the
+#         traversal walks into: nothing in PROCESS is named COOR_SingleRun, and
+#         its boundary is split across SingleRun.__init__ (deck read,
+#         init_process) and finish()/append_input() (outputs written).
+#   note4: THE RUNTIME MODE UNDER ANALYSIS IS SingleRun -- one optimisation
+#         problem per scan point, entered at process/main.py. That is what every
+#         node, edge and count in this analysis describes. PROCESS's other entry
+#         points are deliberately OUT OF SCOPE and would not produce this same
+#         structure, because they differ in what drives the solve rather than
+#         only in settings. The name carries the mode because the bare name
+#         `COOR` invited the reading that this covered PROCESS as a whole.
 #   note3: Scan is absorbed rather than drawn (U-5). The xDSM's subject is one
 #         optimisation problem, and a sweep is a sequence of them. Two facts the
 #         absorption carries: Scan.__init__ runs the sweep as a CONSTRUCTOR SIDE
