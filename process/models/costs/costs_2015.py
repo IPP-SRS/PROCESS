@@ -1047,9 +1047,15 @@ class Costs2015(Model):
         #  For ITER value see
         #  K:\Power Plant Physics and Technology\PROCESS\
         #  PROCESS documentation papers\resistive diffusion time.xmcd or pdf
-        self.data.costs_2015.s_k[51] = (
-            self.data.pf_power.ensxpfm * 1.0e6 / self.data.physics.t_plasma_res_diffusion
-        )
+        # No PF coils or resistive diffusion time for stellarators
+        if self.data.stellarator.istell != 0:
+            self.data.costs_2015.s_k[51] = 0.0
+        else:
+            self.data.costs_2015.s_k[51] = (
+                self.data.pf_power.ensxpfm
+                * 1.0e6
+                / self.data.physics.t_plasma_res_diffusion
+            )
         self.data.costs_2015.s_kref[51] = 8.0e9 / 953.0e0
         self.data.costs_2015.s_cost[51] = (
             self.data.costs_2015.s_cost_factor[51]
