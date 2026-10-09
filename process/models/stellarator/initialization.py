@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from process.core.model import DataStructure
+from process.models.stellarator.preset_config import load_stellarator_config
 
 
 def st_init(data: DataStructure):
@@ -10,6 +13,12 @@ def st_init(data: DataStructure):
     """
     if data.stellarator.istell == 0:
         return
+
+    load_stellarator_config(
+        data.stellarator.istell,
+        Path(f"{data.globals.output_prefix}stella_conf.json"),
+        data,
+    )
 
     data.numerics.boundu[0] = 40.0  # allow higher aspect ratio
 

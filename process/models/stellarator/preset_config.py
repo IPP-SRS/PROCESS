@@ -1,8 +1,11 @@
 import json
+import logging
 from pathlib import Path
 
 from process.core.exceptions import ProcessValueError
 from process.core.model import DataStructure
+
+logger = logging.getLogger(__name__)
 
 HELIAS5B = {
     "name": "Helias 5b",
@@ -247,6 +250,18 @@ def load_stellarator_config(istell: int, config_file: Path | None, data: DataStr
                 machine_config = json.load(f)
         case _:
             raise ProcessValueError(f"{istell=} is not an integer in the range [1, 6]")
+
+    if "intercoil_distance" in machine_config:
+        machine_config = {
+            **machine_config,
+            "dmin": machine_config["intercoil_distance"]
+            * machine_config.get("intercoil_shape_factor", 1.0),
+        }
+    elif istell == 6 and "dmin" in machine_config:
+        logger.warning(
+            "'dmin' in the stellarator config file is deprecated; use "
+            "'intercoil_distance' and 'intercoil_shape_factor'"
+        )
 
     for variable_name, variable_value in machine_config.items():
         name_on_data_structure = f"stella_config_{variable_name.lower()}"

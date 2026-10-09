@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -25,7 +24,6 @@ from process.models.stellarator.density_limits import (
 )
 from process.models.stellarator.divertor import st_div
 from process.models.stellarator.heating import st_heat
-from process.models.stellarator.preset_config import load_stellarator_config
 from process.models.tfcoil.base import TFConductorModel
 
 if TYPE_CHECKING:
@@ -204,12 +202,6 @@ class Stellarator(Model):
         )
 
         """
-        load_stellarator_config(
-            self.data.stellarator.istell,
-            Path(f"{self.data.globals.output_prefix}stella_conf.json"),
-            self.data,
-        )
-
         # If self.data.physics.aspect ratio is not in self.data.numerics.ixc
         # set it to default value
         # Or when you call it the first time
