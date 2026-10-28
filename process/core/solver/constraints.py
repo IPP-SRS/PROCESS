@@ -1901,6 +1901,20 @@ def constraint_equation_92(constraint_registration, data):
     )
 
 
+@ConstraintManager.register_constraint(93, "", "<=")
+def constraint_equation_93(constraint_registration, data):
+    """Upper limit on the stellarator coil thickness relative to coil radius
+
+    coil_thickness_to_radius_ratio: coil toroidal thickness / coil minor radius
+    f_coil_thickness_to_radius_ratio: maximum allowed ratio
+    """
+    return leq(
+        data.stellarator.coil_thickness_to_radius_ratio,
+        data.stellarator.f_coil_thickness_to_radius_ratio,
+        constraint_registration,
+    )
+
+
 def constraint_eqns(m: int, ieqn: int, data: DataStructure):
     """Evaluates the constraints given the current state of PROCESS.
 

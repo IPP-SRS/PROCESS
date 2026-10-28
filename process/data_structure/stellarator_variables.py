@@ -24,6 +24,13 @@ class StellaratorData:
     f_st_rminor: float = 0.0
     """Actual minor radius to reference value from stella_config file"""
 
+    f_coil_thickness_to_radius_ratio: float = 0.2
+    """Maximum allowed ratio of coil toroidal thickness to coil minor radius
+    (constraint 93)"""
+
+    coil_thickness_to_radius_ratio: float = 0.0
+    """Coil toroidal thickness (dx_tf_inboard_out_toroidal) to coil minor radius ratio"""
+
     f_coil_shape: float = 0.0
     """Parameter required for coil scaling
     (min_plasma_coil_distance + stella_config_rminor_ref) / stella_config_coil_rminor

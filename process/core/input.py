@@ -431,6 +431,9 @@ INPUT_VARIABLES = {
     "f_vforce_inboard": InputVariable("tfcoil", float, range=(0.0, 1.0)),
     "f_w": InputVariable("stellarator", float, range=(0.1, 1.0)),
     "f_st_coil_aspect": InputVariable("stellarator", float, range=(0.1, 10.0)),
+    "f_coil_thickness_to_radius_ratio": InputVariable(
+        "stellarator", float, range=(0.0, 1.0)
+    ),
     "f_z_cryostat": InputVariable("build", float, range=(2.0, 10.0)),
     "fauxbop": InputVariable("ife", float, range=(0.0, 1.0)),
     "fblbe": InputVariable("fwbs", float, range=(0.0, 1.0)),

@@ -146,6 +146,12 @@ def write(
         data.tfcoil.dx_tf_inboard_out_toroidal,
     )
     po.ovarre(
+        stellarator.outfile,
+        "Coil toroidal thickness to coil minor radius ratio",
+        "(coil_thickness_to_radius_ratio)",
+        data.stellarator.coil_thickness_to_radius_ratio,
+    )
+    po.ovarre(
         stellarator.outfile, "Minimum coil distance (m)", "(toroidalgap)", toroidalgap
     )
     po.ovarre(
@@ -360,7 +366,7 @@ def write(
     )
     po.ovarre(
         stellarator.outfile,
-        "Current density in conductor area (A/m2)",
+        "Current density in conductor area (A/mm2)",
         "(c_tf_total/a_tf_wp_conductor)",
         1.0e-6
         * data.tfcoil.c_tf_total
@@ -369,7 +375,7 @@ def write(
     )
     po.ovarre(
         stellarator.outfile,
-        "Current density in SC area (A/m2)",
+        "Current density in SC area (A/mm2)",
         "(c_tf_total/a_tf_wp_conductor/f_a_scu_of_wp)",
         1.0e-6 * data.tfcoil.c_tf_total / data.tfcoil.n_tf_coils / ap / f_a_scu_of_wp,
     )

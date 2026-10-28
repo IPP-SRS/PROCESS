@@ -172,6 +172,10 @@ def calculate_coil_toroidal_thickness(data: DataStructure):
         + 2.0e0 * data.tfcoil.dx_tf_wp_insulation
     )  # [m] Thickness of inboard leg in toroidal direction
 
+    data.stellarator.coil_thickness_to_radius_ratio = (
+        data.tfcoil.dx_tf_inboard_out_toroidal / data.stellarator.r_coil_minor
+    )
+
 
 def calculate_coil_radial_thickness(data):
     """Thickness of inboard and outboard leg in radial direction"""

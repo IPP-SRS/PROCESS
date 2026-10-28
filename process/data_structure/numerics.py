@@ -252,6 +252,7 @@ class NumericsData:
             "CS achievable stress load cycles lower limit           ",
             "ECRH ignitability                ",  # Stellarator constraint
             "Fuel composition consistency     ",
+            "Coil thickness/radius upper limit",  # Stellarator constraint
         ]
     )
     """Labels describing constraint equations (corresponding itvs)<UL>
@@ -354,6 +355,7 @@ class NumericsData:
     * (90) Lower Limit on number of stress load cycles for CS
     * (91) Checking if the design point is ECRH ignitable
     * (92) D/T/He3 ratio in fuel sums to 1
+    * (93) Stellarator coil thickness to radius ratio upper limit
     """
 
     ixc: list[int] = field(default_factory=lambda: np.array([0] * IPNVARS))
